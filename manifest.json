@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Widex",
+  "version": "1.6.21",
+  "description": "x.com のタイムライン幅を広げ、画像の高さを制限します。",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Widex"
+  },
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "css": ["styles.css"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

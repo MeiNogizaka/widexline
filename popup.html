@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <h1>Widex</h1>
+
+    <label class="block" for="width">
+      タイムライン幅
+      <output id="widthOut">800</output><span class="unit">px</span>
+    </label>
+    <input id="width" type="range" min="600" max="1200" step="20" value="800" />
+
+    <label class="row" for="hideSidebar">
+      <input id="hideSidebar" type="checkbox" checked />
+      右カラムを隠す
+    </label>
+
+    <label class="row" for="limitHeight">
+      <input id="limitHeight" type="checkbox" />
+      画像の高さを制限する
+    </label>
+    <label class="block" for="maxHeight">
+      上限
+      <output id="maxHeightOut">原寸</output><span class="unit" id="maxHeightUnit"></span>
+    </label>
+    <input id="maxHeight" type="range" min="120" max="800" step="20" value="400" />
+
+    <button id="reset" type="button">初期設定に戻す</button>
+    <p id="status" class="hint">接続確認中…</p>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

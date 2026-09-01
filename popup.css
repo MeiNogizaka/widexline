@@ -1,0 +1,81 @@
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  width: 280px;
+  padding: 14px 16px 12px;
+  font: 13px/1.4 "Segoe UI", "Hiragino Sans", sans-serif;
+  color: #e7e9ea;
+  background: #15202b;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.block {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+output {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.unit {
+  color: #8b98a5;
+}
+
+input[type="range"] {
+  width: 100%;
+  margin: 0 0 12px;
+  accent-color: #1d9bf0;
+}
+
+input[type="range"]:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+button {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #38444d;
+  border-radius: 999px;
+  background: transparent;
+  color: #e7e9ea;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1e2732;
+}
+
+.hint {
+  margin: 10px 0 0;
+  color: #8b98a5;
+  font-size: 11px;
+}
+
+#status.ok {
+  color: #00ba7c;
+}
+
+#status.ng {
+  color: #f4212e;
+}

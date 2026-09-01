@@ -1,0 +1,31 @@
+# Local debug captures. These include a logged-in X timeline,
+# account UI, avatars, and saved page assets. Never commit them.
+スクリーンショット/
+screenshots/
+ホーム*.html
+*_files/
+
+# Session notes and empty daily logs
+logs/
+
+# Browser / Windows download metadata
+*:Zone.Identifier
+*.Zone.Identifier
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+.idea/
+.vscode/
+*.code-workspace
+
+# Packaging leftovers
+*.zip
+*.crx
+*.pem
+web-ext-artifacts/
+dist/
+node_modules/
