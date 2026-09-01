@@ -59,11 +59,11 @@ content.js      Timeline patching (document_start)
 styles.css      Width, height, and flattened-row styles
 popup.html/js/css
 icons/
-docs/           Approach and maintenance (Japanese)
+docs/           Approach and maintenance (Japanese and English)
 PRIVACY.md      What is not collected
 ```
 
-Why it is built this way, and how to repair it when X’s DOM changes, is in [docs/architecture.md](docs/architecture.md) and [docs/maintenance.md](docs/maintenance.md) (Japanese). Notes for publishing are in [docs/publishing.md](docs/publishing.md).
+Why it is built this way, and how to repair it when X’s DOM changes, is in [docs/architecture.en.md](docs/architecture.en.md) and [docs/maintenance.en.md](docs/maintenance.en.md). Japanese versions: [architecture](docs/architecture.md), [maintenance](docs/maintenance.md). Publishing notes: [docs/publishing.en.md](docs/publishing.en.md).
 
 ## Privacy
 

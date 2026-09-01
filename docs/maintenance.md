@@ -1,73 +1,75 @@
-# Maintenance
+# メンテナンス
 
-X ships a new frontend often. Most Widex bugs are “a selector stopped matching” or “a new wrapper appeared around the padding-bottom box.” This file is the checklist for changing the code without repeating old mistakes.
+[日本語](maintenance.md) · [English](maintenance.en.md)
 
-## How to work
+X のフロントエンドはよく変わります。Widex の不具合の多くは「セレクタが当たらなくなった」か「padding-bottom の箱の外側に新しいラッパが付いた」です。このファイルは、同じ失敗を繰り返さないためのチェックリストです。
 
-1. Reproduce on a live x.com tab with the unpacked extension loaded.
-2. Save the tweet HTML **locally** if you need a fixture. Put it under `スクリーンショット/` (gitignored). Do not commit timeline dumps; they contain the logged-in account UI.
-3. Prefer `data-testid` over `r-*` classes. Add a class only when the testid is missing or too broad.
-4. Bump `manifest.json` `version` for any behavior change (current: `1.6.21`).
-5. Keep `DEFAULTS` in `content.js` and `popup.js` identical.
+## 作業の進め方
 
-There are no unit tests. The “test suite” is the cases below, exercised on Home.
+1. 展開済み拡張を入れた状態で、実際の x.com で再現する。
+2. 見本が必要なら投稿 HTML を **ローカルに** 保存する。場所は `スクリーンショット/`（gitignore 済み）。タイムラインのダンプはコミットしない。ログイン中のアカウント UI が入る。
+3. `r-*` クラスより `data-testid` を優先する。testid が無い、または広すぎるときだけクラスを足す。
+4. 挙動を変えたら `manifest.json` の `version` を上げる（いまは `1.6.21`）。
+5. `content.js` と `popup.js` の `DEFAULTS` を同じに保つ。
 
-## Regression cases
+単体テストはありません。「テスト」は次の表をホームで手で確認することです。
 
-Run these after any change to flattening, height, or CSS.
+## 回帰確認
 
-| Case | Expect |
+flatten、高さ、CSS を触ったら、次を確認します。
+
+| ケース | 期待 |
 | --- | --- |
-| Single still | Height = slider (or native if off). Not cropped. Click opens X lightbox, Back stays on Home. |
-| 2–4 stills (carousel) | One horizontal row, packed, no 2×2, no huge gap under the text. |
-| Quote with 4 stills | Same row inside the quote. No leftover native collage. No width flicker. |
-| Link card | Image/video follows the slider. |
-| Video / GIF | Plays, controls visible, no left-then-center jump. |
-| Mixed image + video | Not flattened. Height capped. Video still plays. |
-| Sensitive / 成人向け, still blurred | Overlay and collage both ≤ slider **before** 「表示」. Blur remains. |
-| Sensitive, after 「表示」 | Images appear at the same height. |
-| Sidebar off | No empty 420px column. |
-| Sidebar on | Trends actually render (not a blank column). |
-| Height slider live | Existing tweets update without a reload; scroll position holds. |
-| First load after install | No one-frame-tall blur then snap. Cache + `#widex-early-cap` should prevent it. |
-| Avatar / reply composer | Avatars are not 300px tall (`.r-13qz1uu` exclusion). |
+| 静止画 1 枚 | 高さはスライダー（オフなら原寸）。切れない。クリックで X のライトボックス。戻ってもホームのまま。 |
+| 静止画 2–4 枚（カルーセル） | 横 1 行、パック、2×2 ではない。本文の下に大きな隙間が無い。 |
+| 引用の静止画 4 枚 | 引用の中も同じ 1 行。ネイティブのコラージュが残らない。幅がちらつかない。 |
+| リンクカード | 画像 / 動画がスライダーに従う。 |
+| 動画 / GIF | 再生できる。コントロールが見える。左に寄ってから中央へ戻らない。 |
+| 画像と動画の混在 | flatten しない。高さは制限。動画は再生できる。 |
+| センシティブ / 成人向け、ぼかしたまま | 「表示」の **前から** オーバーレイもコラージュもスライダー以下。ぼかしは残る。 |
+| センシティブ、「表示」のあと | 同じ高さで画像が出る。 |
+| 右カラムオフ | 420px の空洞が無い。 |
+| 右カラムオン | トレンドが実際に描画される（空欄にならない）。 |
+| 高さスライダーをライブで動かす | 再読み込みなしで既存の投稿が変わる。スクロール位置は保つ。 |
+| インストール直後の初回表示 | 1 フレームだけ高いぼかしから縮まない。キャッシュと `#widex-early-cap` で防ぐ。 |
+| アバター / 返信欄 | アバターが 300px にならない（`.r-13qz1uu` 除外）。 |
 
-Typical settings while checking: width 1200, sidebar shown, limit height on, max height 300.
+確認時の目安: 幅 1200、右カラム表示、高さ制限オン、上限 300。
 
-## Rules that exist because of past bugs
+## 過去の不具合から残している約束
 
-Do not undo these without a new reason.
+新しい理由が無いなら、外さないでください。
 
-- **Do not flatten** playable, sensitive, or mixed posts. Flatten hid the player or removed the blur overlay.
-- **Do not set `display: none` on `sidebarColumn`.** Trends stay empty after it is shown again.
-- **Do not `max-height` the inner `videoPlayer`.** Controls get clipped; the player flickers.
-- **Do not navigate to `/photo/N`.** Use the original hidden `<a>` click so X's SPA lightbox opens.
-- **Do not use `zoom` or `getBoundingClientRect` to scale.** Zoom compounded to ~1e-88.
-- **Do not `padding-bottom: 0` every `[style*=padding-bottom]`.** Skip `.r-13qz1uu`.
-- **Do not rely on `max-height` alone** on a padding-bottom aspect box. Percentage padding is of the **parent width**; `max-height` does not include padding. Zero the padding and set `height`.
-- **Cap the overlay's ancestors**, not only `r-1w2pmg`. The warning layer is a sibling covering `r-yfv4eo` / `r-l3hqri`.
-- **Do not re-apply `capPlayable` every frame.** Lock with `data-widex-cap-width` / `data-widex-cap-height`.
-- **Lock `fitRow` after images have `naturalWidth`.** Quote carousels otherwise oscillate width.
+- **再生できる投稿、センシティブ、混在は flatten しない。** プレイヤーが消えたり、ぼかしが外れたりした。
+- **`sidebarColumn` に `display: none` を付けない。** 再表示するとトレンドが空のままになる。
+- **内側の `videoPlayer` に `max-height` を付けない。** コントロールが欠け、ちらつく。
+- **`/photo/N` へ遷移しない。** 隠した元の `<a>` をクリックし、X の SPA ライトボックスを開く。
+- **`zoom` や `getBoundingClientRect` で縮小しない。** zoom が積もって約 1e-88 になった。
+- **すべての `[style*=padding-bottom]` に `padding-bottom: 0` を付けない。** `.r-13qz1uu` は除外する。
+- **padding-bottom のアスペクト箱を `max-height` だけに頼らない。** `%` パディングは **親の幅** 基準で、`max-height` はパディングを含まない。パディングを 0 にして `height` を付ける。
+- **オーバーレイの祖先まで制限する。** `r-1w2pmg` だけでは足りない。警告レイヤは `r-yfv4eo` / `r-l3hqri` を覆う兄弟。
+- **毎フレーム `capPlayable` しない。** `data-widex-cap-width` / `data-widex-cap-height` で固定する。
+- **画像に `naturalWidth` が付いたら `fitRow` を固定する。** そうしないと引用カルーセルの幅が振動する。
 
-## Where to edit
+## どこを直すか
 
-| Symptom | Start here |
+| 症状 | まず見る場所 |
 | --- | --- |
-| First paint too tall | `writeEarlyCapStyle`, `styles.css` early-cap rules, `widex.cache.v1` |
-| Carousel still 2×2 | `flattenCarousel`, `flattenPhotoList`, `ScrollSnap-*` / `testCondensedMedia` |
-| Huge gap under text | leftover `padding-bottom` on a flattened box; hide via `data-widex-hidden` |
-| Blur overlay taller than images | `capFrameAndShell` / `applyNativeCap`; confirm overlay is sibling |
-| Video won't play | `isPlayableMedia`, `restorePlayableMedia`; a flatten hid the player |
-| Video flicker / missing controls | `capPlayable`, `findMediaShell`; inner nodes must stay untouched |
-| Lightbox reloads Home | `bindNativePhotoClick` / `clickOriginalPhoto` |
-| Scroll jumps | `preserveScroll` |
-| Sidebar blank | `syncSidebar`; do not use `display: none` |
-| Quote overflow | `fitRow`, `rowAvailWidth`, `relocateQuoteSingles` |
-| Width stuck at 600 | `uncap600` (`r-1ye8kvj`), `syncShell` |
+| 最初の描画が高すぎる | `writeEarlyCapStyle`、`styles.css` の早期キャップ、`widex.cache.v1` |
+| カルーセルが 2×2 のまま | `flattenCarousel`、`flattenPhotoList`、`ScrollSnap-*` / `testCondensedMedia` |
+| 本文の下の大きな隙間 | flatten した箱に残った `padding-bottom`。`data-widex-hidden` で隠す |
+| ぼかしが画像より高い | `capFrameAndShell` / `applyNativeCap`。オーバーレイが兄弟か確認 |
+| 動画が再生できない | `isPlayableMedia`、`restorePlayableMedia`。flatten がプレイヤーを隠した |
+| 動画のちらつき / コントロール欠け | `capPlayable`、`findMediaShell`。内側のノードは触らない |
+| ライトボックスでホームが再読み込みされる | `bindNativePhotoClick` / `clickOriginalPhoto` |
+| スクロールが跳ねる | `preserveScroll` |
+| 右カラムが空白 | `syncSidebar`。`display: none` は使わない |
+| 引用がはみ出す | `fitRow`、`rowAvailWidth`、`relocateQuoteSingles` |
+| 幅が 600 のまま | `uncap600`（`r-1ye8kvj`）、`syncShell` |
 
-## Debugging on a live page
+## 実ページでの確認
 
-In DevTools, on a broken tweet:
+DevTools で、壊れている投稿に対して:
 
 ```js
 $0.closest("[data-testid='tweetPhoto']")
@@ -77,26 +79,26 @@ getComputedStyle($0).paddingBottom
 getComputedStyle($0).height
 ```
 
-Useful attributes Widex writes:
+Widex が書く属性:
 
-- `data-widex-hidden` — native collage we replaced
-- `data-widex-playable` — do not flatten
-- `data-widex-native-cap` / `data-widex-sensitive-native` — unflattened height cap
-- `data-widex-cap` — playable outer shell
-- `data-widex-fit-h` / `data-widex-fit-lock` — packed row cache
-- `html.widex-limit-height`, `--widex-max-height`, `--widex-width`, `--widex-sidebar`
+- `data-widex-hidden` — 置き換えたネイティブのコラージュ
+- `data-widex-playable` — flatten しない
+- `data-widex-native-cap` / `data-widex-sensitive-native` — flatten しない高さ制限
+- `data-widex-cap` — 再生できる外側シェル
+- `data-widex-fit-h` / `data-widex-fit-lock` — パックした行のキャッシュ
+- `html.widex-limit-height`、`--widex-max-height`、`--widex-width`、`--widex-sidebar`
 
-`#widex-early-cap` is a `<style>` on `<html>`. If it is missing on first paint, the cache path failed.
+`#widex-early-cap` は `<html>` 上の `<style>` です。最初の描画で無ければ、キャッシュ経路が失敗しています。
 
-## Changing X copy / language
+## X の文言 / 言語が変わったとき
 
-Sensitive detection is string matching (`内容の警告`, `Content warning`, `センシティブな内容`, `Sensitive content`, plus 「表示」 / Show / View). A new locale needs those strings in `isSensitiveText` / `hasSensitiveWarning`. Same for playable aria-labels (`埋め込み動画`, `Play GIF`, …).
+センシティブ判定は文字列一致です（`内容の警告`、`Content warning`、`センシティブな内容`、`Sensitive content`、および「表示」 / Show / View）。新しいロケールは `isSensitiveText` / `hasSensitiveWarning` に足します。再生の aria-label（`埋め込み動画`、`Play GIF`、…）も同じです。
 
-## Releasing
+## 公開
 
-1. Confirm the regression table.
-2. Bump `version` in `manifest.json`.
-3. Commit only source + docs. Never `スクリーンショット/`, `logs/`, `*:Zone.Identifier`, or saved `ホーム _ X*.html`.
-4. Tag if you use GitHub Releases. Zip the folder **without** those debug files for people who sideload.
+1. 回帰表を確認する。
+2. `manifest.json` の `version` を上げる。
+3. コミットするのはソースと docs だけ。`スクリーンショット/`、`logs/`、`*:Zone.Identifier`、保存した `ホーム _ X*.html` は入れない。
+4. GitHub Releases を使うならタグを打つ。展開用 zip にも、それらのデバッグファイルは入れない。
 
-Edge Add-ons / Chrome Web Store listing is separate from GitHub and needs its own privacy text (this repo's `PRIVACY.md` is the source).
+Edge アドオン / Chrome ウェブストアの掲載は GitHub とは別で、プライバシー文が要ります。このリポジトリの `PRIVACY.md` が原典です。

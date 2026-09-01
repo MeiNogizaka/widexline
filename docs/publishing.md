@@ -1,51 +1,53 @@
-# Publishing this repo
+# このリポジトリの公開
 
-## What is safe to put on GitHub
+[日本語](publishing.md) · [English](publishing.en.md)
 
-These files have no account names, emails, tokens, or timeline dumps:
+## GitHub に載せてよいもの
+
+次のファイルにアカウント名、メール、トークン、タイムラインのダンプはありません。
 
 - `manifest.json`
-- `content.js`, `styles.css`
-- `popup.html`, `popup.js`, `popup.css`
+- `content.js`、`styles.css`
+- `popup.html`、`popup.js`、`popup.css`
 - `icons/*.png`
-- `README.md`, `PRIVACY.md`, `LICENSE`
+- `README.md`、`README.en.md`、`PRIVACY.md`、`LICENSE`
 - `docs/`
 - `.gitignore`
 
-A scan of those sources found no email addresses, no X handles, and no API keys. The extension does not embed credentials.
+ソースを確認した範囲では、メール、X のハンドル、API キーはありません。拡張機能に認証情報は埋め込んでいません。
 
-## What must stay local
+## ローカルに残すもの
 
-| Path | Why |
+| パス | 理由 |
 | --- | --- |
-| `スクリーンショット/` | Logged-in Home screenshots, account chrome, other people's posts and avatars, saved Edge HTML (full timeline DOM). |
-| `ホーム _ X*.html` and `*_files/` | Same dumps, plus downloaded X JS bundles. |
-| `*:Zone.Identifier` | Windows download ADS; not useful in git. |
-| `logs/` | Local session notes. Currently empty templates. |
+| `スクリーンショット/` | ログイン中ホームの画面、アカウント UI、他ユーザーの投稿とアバター、保存した Edge の HTML（タイムライン全体の DOM）。 |
+| `ホーム _ X*.html` と `*_files/` | 同じダンプに加え、ダウンロードした X の JS。 |
+| `*:Zone.Identifier` | Windows のダウンロード ADS。git には不要。 |
+| `logs/` | 作業メモ。いまは空の雛形。 |
 
-`.gitignore` already excludes them. Before the first `git push`, run:
+`.gitignore` で除外済みです。`git push` の前に次を実行します。
 
 ```bash
 git status
 git ls-files
 ```
 
-If any `スクリーンショット`, `ホーム _ X`, or `Zone.Identifier` path appears, abort and unstage it.
+`スクリーンショット`、`ホーム _ X`、`Zone.Identifier` が出たら中止し、ステージから外します。
 
-Do not add “before/after” screenshots from a logged-in account. If you want a README image later, capture a throwaway account or crop out the sidebar, display name, and avatar.
+ログイン中アカウントの「修正前 / 修正後」スクリーンショットは足さないでください。README 用の画像が必要なら、捨てアカウントで撮るか、右カラム・表示名・アバターを切ります。
 
-## Create the GitHub repo
+## GitHub リポジトリの作成
 
-From this folder, after reviewing `git status`:
+公開リポジトリは既にあります。新規クローンから出す場合:
 
 ```bash
 git init
-git add manifest.json content.js styles.css popup.html popup.js popup.css icons README.md PRIVACY.md LICENSE docs .gitignore
-git status   # review the index
-git commit -m "Initial public snapshot of Widex 1.6.21"
+git add manifest.json content.js styles.css popup.html popup.js popup.css icons README.md README.en.md PRIVACY.md LICENSE docs .gitignore
+git status   # インデックスを確認
+git commit -m "Initial public snapshot of Widex"
 ```
 
-Then create an empty GitHub repository (no README, so you do not merge a second root file) and:
+続けて:
 
 ```bash
 git remote add origin git@github.com:<you>/widex.git
@@ -53,10 +55,10 @@ git branch -M main
 git push -u origin main
 ```
 
-Use your own GitHub account in the remote URL. This document does not name a user.
+remote の URL は自分の GitHub アカウントにします。この文書ではユーザー名を書きません。
 
-Suggested GitHub extras: Description “Widen the x.com timeline and cap media height”, topic `browser-extension`, license MIT. Do not upload the private debug folder as a Release asset.
+GitHub 側の目安: 説明は “Widen the x.com timeline and cap media height”、トピック `browser-extension`、ライセンス MIT。非公開のデバッグフォルダを Release の添付にしない。
 
-## Store listing later
+## ストア掲載は別件
 
-GitHub is source hosting only. An Edge Add-ons or Chrome Web Store listing needs a privacy declaration; copy from `PRIVACY.md`. Host permissions stay `https://x.com/*` and `https://twitter.com/*`.
+GitHub はソースの置き場です。Edge アドオンや Chrome ウェブストアにはプライバシー文が要ります。`PRIVACY.md` からコピーします。ホスト権限は `https://x.com/*` と `https://twitter.com/*` のままです。

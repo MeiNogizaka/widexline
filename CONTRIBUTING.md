@@ -1,6 +1,6 @@
 # Contributing
 
-Please read [docs/architecture.md](docs/architecture.md) and [docs/maintenance.md](docs/maintenance.md) first. The two media paths (flatten vs native-cap) and the padding-bottom trap are easy to break.
+Please read [docs/architecture.en.md](docs/architecture.en.md) and [docs/maintenance.en.md](docs/maintenance.en.md) first (Japanese: [architecture](docs/architecture.md), [maintenance](docs/maintenance.md)). The two media paths (flatten vs native-cap) and the padding-bottom trap are easy to break.
 
 ## Pull requests
 

@@ -59,11 +59,11 @@ content.js      タイムラインの加工（document_start）
 styles.css      幅・高さ・flatten 行の見た目
 popup.html/js/css
 icons/
-docs/           方式とメンテナンス
+docs/           方式とメンテナンス（日本語 / 英語）
 PRIVACY.md      収集しないことの説明
 ```
 
-実装の理由と、X の DOM が変わったときの直し方は [docs/architecture.md](docs/architecture.md) と [docs/maintenance.md](docs/maintenance.md) を見てください。GitHub へ上げるときの注意は [docs/publishing.md](docs/publishing.md) です。
+実装の理由と、X の DOM が変わったときの直し方は [docs/architecture.md](docs/architecture.md) と [docs/maintenance.md](docs/maintenance.md) です。英語は [docs/architecture.en.md](docs/architecture.en.md) と [docs/maintenance.en.md](docs/maintenance.en.md)。GitHub へ上げるときの注意は [docs/publishing.md](docs/publishing.md)（[English](docs/publishing.en.md)）です。
 
 ## プライバシー
 
