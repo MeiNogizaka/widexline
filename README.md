@@ -1,5 +1,7 @@
 # Widex
 
+[日本語](README.md) · [English](README.en.md)
+
 Microsoft Edge / Chromium 向けの非公式拡張機能です。x.com（旧 Twitter）のタイムライン幅を広げ、画像・動画・センシティブ警告の高さを揃えます。複数画像は 2×2 ではなく 1 行に並べます。
 
 X / Twitter とは無関係です。サイトの DOM に依存するため、X 側の更新で壊れることがあります。
