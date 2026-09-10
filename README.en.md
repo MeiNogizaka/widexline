@@ -8,6 +8,8 @@ This project is not affiliated with X / Twitter. It depends on the site’s DOM,
 
 Updates and bug fixes happen on the author’s schedule. There is no promise of when or how much will be addressed.
 
+MeiNogizaka has not published Widexline on the Chrome Web Store or Edge Add-ons. This GitHub repository is the only original. If a third party publishes an extension that uses this code, it may not match this source.
+
 ![Widexline timeline](widexline_screenshot_1.png)
 
 ## Features
