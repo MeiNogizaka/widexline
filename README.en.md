@@ -8,6 +8,8 @@ This project is not affiliated with X / Twitter. It depends on the site’s DOM,
 
 Updates and bug fixes happen on the author’s schedule. There is no promise of when or how much will be addressed.
 
+![Widexline timeline](widexline_screenshot_1.png)
+
 ## Features
 
 - Timeline width from 600–1200px
