@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Widexline",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "x.com のタイムライン幅を広げ、画像の高さを制限します。",
   "action": {
     "default_popup": "popup.html",

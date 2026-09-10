@@ -256,6 +256,68 @@ function hasSensitiveWarning(el) {
   return false;
 }
 
+function warningButtonKind(button) {
+  const text = (button.innerText || "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  if (text === "さらに表示" || /^Show more/i.test(text)) return "";
+  if (text === "非表示にする" || text === "非表示" || text === "Hide") return "hide";
+  if (text === "表示" || text === "Show" || text === "View") return "show";
+  return "";
+}
+
+function isWarningTitleText(text) {
+  return (
+    text.includes("内容の警告") ||
+    text.includes("Content warning") ||
+    text === "センシティブな内容" ||
+    text === "Sensitive content" ||
+    text === "成人向けコンテンツ" ||
+    text === "Adult content"
+  );
+}
+
+function mediaShellContainsButton(button) {
+  let node = button.parentElement;
+  for (let i = 0; i < 10 && node && !isTweetRoot(node); i++) {
+    if (
+      node.querySelector(
+        "[data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid='previewInterstitial']"
+      )
+    ) {
+      return true;
+    }
+    node = node.parentElement;
+  }
+  return false;
+}
+
+function syncWarningOverlay(col) {
+  col.querySelectorAll("article[data-testid='tweet'] button").forEach((button) => {
+    const kind = warningButtonKind(button);
+    if (!kind || !mediaShellContainsButton(button)) return;
+    if (kind === "hide") {
+      button.setAttribute("data-widex-warning-hide", "1");
+      return;
+    }
+    const stack = button.parentElement;
+    if (!stack || !isSensitiveText(stack.innerText || "")) return;
+    stack.setAttribute("data-widex-warning-stack", "1");
+    button.setAttribute("data-widex-warning-btn", "1");
+    const overlay = stack.parentElement;
+    if (overlay && !isTweetRoot(overlay)) {
+      overlay.setAttribute("data-widex-warning-overlay", "1");
+    }
+    const group = [...stack.children].find((child) => child !== button);
+    if (!group) return;
+    [...group.children].forEach((child) => {
+      if (child.tagName === "svg") return;
+      const t = (child.innerText || "").trim();
+      if (!t || isWarningTitleText(t)) return;
+      child.setAttribute("data-widex-warning-desc", "1");
+    });
+  });
+}
+
 function playableScope(el) {
   return (
     el?.closest("[data-testid='tweetPhoto']") ||
@@ -1236,6 +1298,7 @@ function patchTimeline() {
       fitSingle(wrap);
     });
     syncSensitive();
+    syncWarningOverlay(col);
     col.querySelectorAll(".widex-row a, .widex-single a").forEach((link) => {
       bindNativePhotoClick(link, link.getAttribute("href"));
     });
