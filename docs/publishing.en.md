@@ -50,14 +50,14 @@ git commit -m "Initial public snapshot of Widexline"
 Then:
 
 ```bash
-git remote add origin git@github.com:<you>/widex.git
+git remote add origin git@github.com:<you>/widexline.git
 git branch -M main
 git push -u origin main
 ```
 
 Use your own GitHub account in the remote URL. This document does not name a user.
 
-Suggested GitHub extras: Description “Widen the x.com timeline and cap media height”, topic `browser-extension`, license MIT. Do not upload the private debug folder as a Release asset.
+Suggested GitHub extras: repository name `widexline`, description “Widexline: widen the x.com timeline and cap media height”, topic `browser-extension`, license MIT. Do not upload the private debug folder as a Release asset.
 
 ## Store listing later
 

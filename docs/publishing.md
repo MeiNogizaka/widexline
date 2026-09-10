@@ -50,14 +50,14 @@ git commit -m "Initial public snapshot of Widexline"
 続けて:
 
 ```bash
-git remote add origin git@github.com:<you>/widex.git
+git remote add origin git@github.com:<you>/widexline.git
 git branch -M main
 git push -u origin main
 ```
 
 remote の URL は自分の GitHub アカウントにします。この文書ではユーザー名を書きません。
 
-GitHub 側の目安: 説明は “Widen the x.com timeline and cap media height”、トピック `browser-extension`、ライセンス MIT。非公開のデバッグフォルダを Release の添付にしない。
+GitHub 側の目安: リポジトリ名 `widexline`、説明は “Widexline: widen the x.com timeline and cap media height”、トピック `browser-extension`、ライセンス MIT。非公開のデバッグフォルダを Release の添付にしない。
 
 ## ストア掲載は別件
 
