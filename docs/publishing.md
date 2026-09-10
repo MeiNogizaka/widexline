@@ -44,7 +44,7 @@ git ls-files
 git init
 git add manifest.json content.js styles.css popup.html popup.js popup.css icons README.md README.en.md PRIVACY.md LICENSE docs .gitignore
 git status   # インデックスを確認
-git commit -m "Initial public snapshot of Widex"
+git commit -m "Initial public snapshot of Widexline"
 ```
 
 続けて:

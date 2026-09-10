@@ -1,6 +1,6 @@
 # Privacy
 
-Widex does not collect, transmit, or sell personal data.
+Widexline does not collect, transmit, or sell personal data.
 
 ## What the extension accesses
 
@@ -21,4 +21,4 @@ Widex does not collect, transmit, or sell personal data.
 
 ## Uninstall
 
-Removing the extension deletes `chrome.storage.local` data for Widex. The `widex.cache.v1` key in the site's `localStorage` may remain until the site data is cleared.
+Removing the extension deletes `chrome.storage.local` data for Widexline. The `widex.cache.v1` key in the site's `localStorage` may remain until the site data is cleared.

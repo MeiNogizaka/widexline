@@ -2,14 +2,14 @@
 
 [日本語](maintenance.md) · [English](maintenance.en.md)
 
-X のフロントエンドはよく変わります。Widex の不具合の多くは「セレクタが当たらなくなった」か「padding-bottom の箱の外側に新しいラッパが付いた」です。このファイルは、同じ失敗を繰り返さないためのチェックリストです。
+X のフロントエンドはよく変わります。Widexline の不具合の多くは「セレクタが当たらなくなった」か「padding-bottom の箱の外側に新しいラッパが付いた」です。このファイルは、同じ失敗を繰り返さないためのチェックリストです。
 
 ## 作業の進め方
 
 1. 展開済み拡張を入れた状態で、実際の x.com で再現する。
 2. 見本が必要なら投稿 HTML を **ローカルに** 保存する。場所は `スクリーンショット/`（gitignore 済み）。タイムラインのダンプはコミットしない。ログイン中のアカウント UI が入る。
 3. `r-*` クラスより `data-testid` を優先する。testid が無い、または広すぎるときだけクラスを足す。
-4. 挙動を変えたら `manifest.json` の `version` を上げる（いまは `1.6.21`）。
+4. 挙動を変えたら `manifest.json` の `version` を上げる（いまは `1.7.0`）。
 5. `content.js` と `popup.js` の `DEFAULTS` を同じに保つ。
 
 単体テストはありません。「テスト」は次の表をホームで手で確認することです。
@@ -79,7 +79,7 @@ getComputedStyle($0).paddingBottom
 getComputedStyle($0).height
 ```
 
-Widex が書く属性:
+Widexline が書く属性:
 
 - `data-widex-hidden` — 置き換えたネイティブのコラージュ
 - `data-widex-playable` — flatten しない

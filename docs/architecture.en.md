@@ -2,7 +2,7 @@
 
 [日本語](architecture.md) · [English](architecture.en.md)
 
-Widex is a Manifest V3 content script. It does not replace X's React tree. It patches the already-rendered DOM so the timeline is wider and media is shorter, without breaking playback, sensitive-content blur, or the native photo lightbox.
+Widexline is a Manifest V3 content script. It does not replace X's React tree. It patches the already-rendered DOM so the timeline is wider and media is shorter, without breaking playback, sensitive-content blur, or the native photo lightbox.
 
 ## Files
 
@@ -54,7 +54,7 @@ X media is an aspect-ratio box: a spacer with `padding-bottom: N%` and an absolu
 - `max-height` on a content-box element does not clip that padding.
 - The “内容の警告 / 成人向けコンテンツ” overlay is a `position: absolute; inset: 0` **sibling** of the collage box (`r-1w2pmg`), not a child of it. Capping the collage alone leaves a tall overlay.
 
-So Widex splits media into two paths.
+So Widexline splits media into two paths.
 
 ### Flatten (still photos only)
 

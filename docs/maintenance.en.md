@@ -2,14 +2,14 @@
 
 [日本語](maintenance.md) · [English](maintenance.en.md)
 
-X ships a new frontend often. Most Widex bugs are “a selector stopped matching” or “a new wrapper appeared around the padding-bottom box.” This file is the checklist for changing the code without repeating old mistakes.
+X ships a new frontend often. Most Widexline bugs are “a selector stopped matching” or “a new wrapper appeared around the padding-bottom box.” This file is the checklist for changing the code without repeating old mistakes.
 
 ## How to work
 
 1. Reproduce on a live x.com tab with the unpacked extension loaded.
 2. Save the tweet HTML **locally** if you need a fixture. Put it under `スクリーンショット/` (gitignored). Do not commit timeline dumps; they contain the logged-in account UI.
 3. Prefer `data-testid` over `r-*` classes. Add a class only when the testid is missing or too broad.
-4. Bump `manifest.json` `version` for any behavior change (current: `1.6.21`).
+4. Bump `manifest.json` `version` for any behavior change (current: `1.7.0`).
 5. Keep `DEFAULTS` in `content.js` and `popup.js` identical.
 
 There are no unit tests. The “test suite” is the cases below, exercised on Home.
@@ -79,7 +79,7 @@ getComputedStyle($0).paddingBottom
 getComputedStyle($0).height
 ```
 
-Useful attributes Widex writes:
+Useful attributes Widexline writes:
 
 - `data-widex-hidden` — native collage we replaced
 - `data-widex-playable` — do not flatten

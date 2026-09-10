@@ -113,8 +113,8 @@ function applySettings(settings, { notify } = {}) {
   if (notify) {
     toast(
       current.limitHeight
-        ? `Widex: 幅 ${current.width}px / 高さ上限 ${current.maxHeight}px`
-        : `Widex: 幅 ${current.width}px / 高さ 原寸`
+        ? `Widexline: 幅 ${current.width}px / 高さ上限 ${current.maxHeight}px`
+        : `Widexline: 幅 ${current.width}px / 高さ 原寸`
     );
   }
 }

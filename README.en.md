@@ -1,4 +1,4 @@
-# Widex
+# Widexline
 
 [日本語](README.md) · [English](README.en.md)
 
@@ -33,7 +33,7 @@ Chrome is the same, using `chrome://extensions/`.
 On Windows, copying the source files is enough. For example:
 
 ```text
-%LOCALAPPDATA%\Widex
+%LOCALAPPDATA%\Widexline
 ```
 
 `スクリーンショット/` and `logs/` are local debug captures and are not in the public repository.
@@ -67,7 +67,7 @@ Why it is built this way, and how to repair it when X’s DOM changes, is in [do
 
 ## Privacy
 
-Widex does not handle personal data. See [PRIVACY.md](PRIVACY.md).
+Widexline does not handle personal data. See [PRIVACY.md](PRIVACY.md).
 
 A working copy of this folder may still contain saved logged-in timeline HTML and screenshots. Those paths are in `.gitignore`. **Do not push them to GitHub.**
 

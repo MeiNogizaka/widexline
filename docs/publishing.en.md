@@ -44,7 +44,7 @@ The public repository already exists. To publish from a fresh clone:
 git init
 git add manifest.json content.js styles.css popup.html popup.js popup.css icons README.md README.en.md PRIVACY.md LICENSE docs .gitignore
 git status   # review the index
-git commit -m "Initial public snapshot of Widex"
+git commit -m "Initial public snapshot of Widexline"
 ```
 
 Then:

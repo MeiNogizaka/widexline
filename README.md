@@ -1,4 +1,4 @@
-# Widex
+# Widexline
 
 [日本語](README.md) · [English](README.en.md)
 
@@ -33,7 +33,7 @@ Chrome でも同じ手順です（`chrome://extensions/`）。
 Windows にコピーして使う場合は、ソースだけを置けば足ります。例:
 
 ```text
-%LOCALAPPDATA%\Widex
+%LOCALAPPDATA%\Widexline
 ```
 
 `スクリーンショット/` や `logs/` はデバッグ用で、公開リポジトリには含めません。
