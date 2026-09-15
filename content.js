@@ -500,9 +500,66 @@ function findMediaShell(start) {
   return photo || null;
 }
 
+function isPollCard(el) {
+  const card =
+    el?.getAttribute?.("data-testid") === "card.wrapper"
+      ? el
+      : el?.closest?.("[data-testid='card.wrapper']");
+  if (!card) return false;
+  if (card.getAttribute("data-widex-poll") === "1") return true;
+  if (card.querySelector("[data-testid='Carousel-NavRight'], [data-testid='Carousel-NavLeft']")) {
+    return true;
+  }
+  if ((card.innerHTML || "").includes("card_img/")) return true;
+  const text = card.innerText || "";
+  return (
+    text.includes("選択すると変更できません") ||
+    text.includes("Can't undo") ||
+    text.includes("You won’t be able to change") ||
+    text.includes("You won't be able to change") ||
+    text.includes("最終結果") ||
+    text.includes("Final results") ||
+    /\d[\d,]*\s*票/.test(text) ||
+    /\d[\d,]*\s*votes?/i.test(text)
+  );
+}
+
+function releaseImportantBox(node) {
+  if (!node?.style) return;
+  ["overflow", "width", "max-width", "max-height", "height", "padding-bottom"].forEach((prop) => {
+    if (node.style.getPropertyPriority(prop) === "important") {
+      node.style.removeProperty(prop);
+    }
+  });
+}
+
+function capPollCard(card) {
+  card.setAttribute("data-widex-poll", "1");
+  releaseImportantBox(card);
+  card.querySelectorAll("[style]").forEach((node) => {
+    if (
+      node.style.getPropertyPriority("width") === "important" ||
+      node.style.getPropertyPriority("max-width") === "important" ||
+      node.style.getPropertyPriority("max-height") === "important"
+    ) {
+      releaseImportantBox(node);
+    }
+  });
+  if (!current.limitHeight) return;
+  card.querySelectorAll("[style*='padding-bottom']").forEach((spacer) => {
+    const box = spacer.parentElement;
+    if (!box || box === card) return;
+    spacer.style.setProperty("padding-bottom", "0px", "important");
+    box.style.setProperty("height", `${current.maxHeight}px`, "important");
+    box.style.setProperty("max-height", `${current.maxHeight}px`, "important");
+    box.style.setProperty("overflow", "hidden", "important");
+  });
+}
+
 function applyAspectCap(box, spacer) {
   if (!box || !spacer) return;
-  if (box.closest("[data-widex-playable='1'], [data-widex-cap='1']")) return;
+  if (box.closest("[data-widex-playable='1'], [data-widex-cap='1'], [data-widex-poll='1']")) return;
+  if (isPollCard(box)) return;
   if (isPlayableMedia(box)) return;
   box.style.removeProperty("zoom");
   const targets = aspectCapTargets(box);
@@ -770,6 +827,10 @@ function capNativeBox(photo) {
 
 function capLinkCards(col) {
   col.querySelectorAll('[data-testid="card.wrapper"]').forEach((card) => {
+    if (isPollCard(card)) {
+      capPollCard(card);
+      return;
+    }
     if (isPlayableMedia(card)) {
       capPlayable(card);
       return;

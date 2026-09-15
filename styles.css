@@ -301,3 +301,11 @@ html.widex-limit-height [data-testid="primaryColumn"] [style*="min-height:510px"
   z-index: 5 !important;
   pointer-events: auto !important;
 }
+
+[data-widex-poll="1"] {
+  max-width: none !important;
+  width: auto !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+}
