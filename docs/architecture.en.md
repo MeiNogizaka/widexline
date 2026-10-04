@@ -17,10 +17,16 @@ There is no background service worker and no build step.
 
 ## Settings
 
-Four keys, same defaults in `content.js` and `popup.js`:
+Five keys, same defaults in `content.js` and `popup.js`:
 
 ```js
-{ width: 800, hideSidebar: true, limitHeight: false, maxHeight: 400 }
+{
+  width: 800,
+  hideSidebar: true,
+  limitHeight: false,
+  maxHeight: 400,
+  releasePinOnScroll: false,
+}
 ```
 
 Two stores:
@@ -41,10 +47,11 @@ document_start
   (optimistic cap if no cache)
 chrome.storage.local.get  →  applySettings → patchTimeline
 MutationObserver (subtree)  →  schedulePatch (rAF)  →  patchTimeline
+popstate / pushState / Navigation API  →  save and restore tweet position
 popup message widex-settings / widex-ping
 ```
 
-`patchTimeline` is the only full pass. It is wrapped in `preserveScroll` so height changes do not jump the tweet under the viewport.
+`patchTimeline` is the only full pass. Ordinary patches do not touch `scrollTop`. `preserveScroll` runs only when the popup changes settings (`holdScroll`).
 
 ## Two media strategies
 
@@ -97,6 +104,18 @@ CSS and the early `#widex-early-cap` style target
 
 X also hard-codes `height: 510px` on some single-image boxes. Both CSS and `applyAspectCap` override that with `height: auto` / `max-height`.
 
+### Link cards vs polls
+
+`[data-testid="card.wrapper"]` is used for both link cards and image polls. Detect a poll by `card_img`, `Carousel-NavRight`, or copy such as vote counts / “Can't undo”. Applying `applyAspectCap` to the whole card shrinks it to a maxHeight square and the choices overlap the timestamp. Mark `data-widex-poll="1"`, leave the card width alone, and cap only the images inside.
+
+### Sensitive “Show” overlay
+
+A height cap can hide the Show button behind the warning description. Do not move nodes in React’s tree. `syncWarningOverlay` sets markers; CSS puts the button on top and hides the long description. The title (“Content warning: …”) stays. “Hide” stays top-right, with a higher z-index.
+
+### Flatten image URLs
+
+`mediaUrl` only rewrites flatten `<img>` sources. It upgrades `name=small` to `large` when the column is wider than 680px. `medium` / `large` / `orig` are left alone. The lightbox loads its own URL from X, independent of this rewrite.
+
 ## Width and sidebar
 
 X caps the column with atomic class `r-1ye8kvj` (`max-width: 600px`). `uncap600` clears that. `syncShell` sets `primaryColumn` to `--widex-width` and the `main > div` shell to `width + (hideSidebar ? 0 : 420)`.
@@ -115,7 +134,14 @@ Cap only the outer shell (`findMediaShell`). Width comes from `maxHeight * 100 /
 
 ## Scroll
 
-`preserveScroll` records the first on-screen `article[data-testid="tweet"]` top, runs the patch, then adds the delta to `scrollTop`. Height-limit changes otherwise shove the timeline.
+`preserveScroll` records the first on-screen `article[data-testid="tweet"]` top, runs the patch, then adds the delta to `scrollTop`. Use it when the popup changes width or height. Using it on every Observer patch shoves the timeline after Back from a status page.
+
+After a click through to `/status/N` and Back:
+
+1. Save the tweet id and its viewport offset to `sessionStorage["widex.scroll.v1"]` before leaving
+2. Patch immediately on return. Pausing the patch leaves a frame of native-size media
+3. Pin that tweet in place while image loads change height (up to about 3 seconds)
+4. If `releasePinOnScroll` is on, a wheel / touch / user scroll drops the pin. Default is off (scroll still pulls back to the tweet)
 
 ## Selectors that will rot
 
@@ -133,7 +159,9 @@ Prefer `data-testid` over atomic classes. Classes below are hashed by X and will
 | `tweetPhoto` | still (sometimes also the video shell) |
 | `ScrollSnap-*` | image carousel |
 | `testCondensedMedia` | quote-post collage |
-| `card.wrapper` | link card |
+| `card.wrapper` | link card; image polls share this testid |
+| `card.layoutLarge.media` | link-card media (not present on polls) |
+| `Carousel-NavRight` / `Carousel-NavLeft` | image-poll carousel |
 | `videoPlayer` / `previewInterstitial` / `playButton` | player |
 | `sidebarColumn` / `primaryColumn` | layout |
 

@@ -9,7 +9,7 @@ X ships a new frontend often. Most Widexline bugs are “a selector stopped matc
 1. Reproduce on a live x.com tab with the unpacked extension loaded.
 2. Save the tweet HTML **locally** if you need a fixture. Put it under `スクリーンショット/` (gitignored). Do not commit timeline dumps; they contain the logged-in account UI.
 3. Prefer `data-testid` over `r-*` classes. Add a class only when the testid is missing or too broad.
-4. Bump `manifest.json` `version` for any behavior change (current: `1.7.0`).
+4. Bump `manifest.json` `version` for any behavior change (current: `1.7.6`).
 5. Keep `DEFAULTS` in `content.js` and `popup.js` identical.
 
 There are no unit tests. The “test suite” is the cases below, exercised on Home.
@@ -24,13 +24,15 @@ Run these after any change to flattening, height, or CSS.
 | 2–4 stills (carousel) | One horizontal row, packed, no 2×2, no huge gap under the text. |
 | Quote with 4 stills | Same row inside the quote. No leftover native collage. No width flicker. |
 | Link card | Image/video follows the slider. |
+| Image poll | The card is not shrunk to a maxHeight square. Choices and vote count do not overlap the timestamp. |
 | Video / GIF | Plays, controls visible, no left-then-center jump. |
 | Mixed image + video | Not flattened. Height capped. Video still plays. |
-| Sensitive / 成人向け, still blurred | Overlay and collage both ≤ slider **before** 「表示」. Blur remains. |
-| Sensitive, after 「表示」 | Images appear at the same height. |
+| Sensitive / 成人向け, still blurred | Overlay and collage both ≤ slider **before** 「表示」. Blur remains. Show is clickable (the description may be hidden). |
+| Sensitive, after 「表示」 | Images appear at the same height. Hide remains clickable. |
 | Sidebar off | No empty 420px column. |
 | Sidebar on | Trends actually render (not a blank column). |
 | Height slider live | Existing tweets update without a reload; scroll position holds. |
+| Back from a status page | The tweet you were looking at stays in place. Height limit on. Do not pause patching (that flashes native-size media). |
 | First load after install | No one-frame-tall blur then snap. Cache + `#widex-early-cap` should prevent it. |
 | Avatar / reply composer | Avatars are not 300px tall (`.r-13qz1uu` exclusion). |
 
@@ -50,6 +52,9 @@ Do not undo these without a new reason.
 - **Cap the overlay's ancestors**, not only `r-1w2pmg`. The warning layer is a sibling covering `r-yfv4eo` / `r-l3hqri`.
 - **Do not re-apply `capPlayable` every frame.** Lock with `data-widex-cap-width` / `data-widex-cap-height`.
 - **Lock `fitRow` after images have `naturalWidth`.** Quote carousels otherwise oscillate width.
+- **Do not `applyAspectCap` a poll `card.wrapper` as if it were a link card.** The card becomes a square and choices overlap the timestamp.
+- **Do not move the warning Show button in React’s tree.** Use CSS `order` and hide the description.
+- **Do not `preserveScroll` on ordinary Observer patches.** Back from a status page shoves the timeline. Patch immediately on return and pin by tweet id.
 
 ## Where to edit
 
@@ -62,7 +67,10 @@ Do not undo these without a new reason.
 | Video won't play | `isPlayableMedia`, `restorePlayableMedia`; a flatten hid the player |
 | Video flicker / missing controls | `capPlayable`, `findMediaShell`; inner nodes must stay untouched |
 | Lightbox reloads Home | `bindNativePhotoClick` / `clickOriginalPhoto` |
-| Scroll jumps | `preserveScroll` |
+| Scroll jumps | `preserveScroll` (settings change only), `applyPinnedAnchor` |
+| Back lands in the wrong place / images flash large | `beginRestore`, `armPinnedAnchor`, `releasePinFromUserScroll` |
+| Show is not clickable | `syncWarningOverlay`, `data-widex-warning-*` |
+| Poll layout collapses | `isPollCard`, `capPollCard`, `capLinkCards` |
 | Sidebar blank | `syncSidebar`; do not use `display: none` |
 | Quote overflow | `fitRow`, `rowAvailWidth`, `relocateQuoteSingles` |
 | Width stuck at 600 | `uncap600` (`r-1ye8kvj`), `syncShell` |
@@ -86,6 +94,8 @@ Useful attributes Widexline writes:
 - `data-widex-native-cap` / `data-widex-sensitive-native` — unflattened height cap
 - `data-widex-cap` — playable outer shell
 - `data-widex-fit-h` / `data-widex-fit-lock` — packed row cache
+- `data-widex-poll` — poll card; do not shrink the wrapper
+- `data-widex-warning-overlay` / `-stack` / `-btn` / `-desc` / `-hide` — blurred Show / Hide
 - `html.widex-limit-height`, `--widex-max-height`, `--widex-width`, `--widex-sidebar`
 
 `#widex-early-cap` is a `<style>` on `<html>`. If it is missing on first paint, the cache path failed.

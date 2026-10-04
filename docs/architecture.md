@@ -17,10 +17,16 @@ Widexline は Manifest V3 のコンテンツスクリプトです。X の React 
 
 ## 設定
 
-キーは 4 つ。`content.js` と `popup.js` の初期値は同じです。
+キーは 5 つ。`content.js` と `popup.js` の初期値は同じです。
 
 ```js
-{ width: 800, hideSidebar: true, limitHeight: false, maxHeight: 400 }
+{
+  width: 800,
+  hideSidebar: true,
+  limitHeight: false,
+  maxHeight: 400,
+  releasePinOnScroll: false,
+}
 ```
 
 保存場所は 2 つです。
@@ -41,10 +47,11 @@ document_start
   （キャッシュが無ければ楽観的にキャップ）
 chrome.storage.local.get  →  applySettings → patchTimeline
 MutationObserver (subtree)  →  schedulePatch (rAF)  →  patchTimeline
+popstate / pushState / Navigation API  →  投稿位置の保存と復元
 ポップアップからの widex-settings / widex-ping
 ```
 
-全体を通す処理は `patchTimeline` だけです。高さ変更で画面上の投稿が跳ねないよう `preserveScroll` で包みます。
+全体を通す処理は `patchTimeline` だけです。通常のパッチは `scrollTop` を触りません。`preserveScroll` はポップアップで設定を変えたとき（`holdScroll`）だけです。
 
 ## メディア処理は二系統
 
@@ -97,6 +104,18 @@ CSS と早期の `#widex-early-cap` が当てる対象は次です。
 
 一部の単画像には `height: 510px` が直書きされています。CSS と `applyAspectCap` の両方で `height: auto` / `max-height` に差し替えます。
 
+### リンクカードと投票
+
+`[data-testid="card.wrapper"]` はリンクカードと画像投票の両方です。投票は `card_img`、`Carousel-NavRight`、票数の文言（`票` / `votes` / `選択すると変更できません` など）で判定します。リンクカードと同じ `applyAspectCap` をカード全体に付けると、枠が上限 px の正方形になり、選択肢が日時行に重なります。`data-widex-poll="1"` を付け、枠は縮めず中の画像だけ高さを制限します。
+
+### センシティブ警告の「表示」
+
+高さ制限で説明文が「表示」を隠すことがあります。React の木は動かさず、`syncWarningOverlay` が印を付けます。CSS でボタンを上へ出し、長い説明文は隠します。見出し（「内容の警告: …」）は残します。「非表示にする」は右上のまま、沈まないようにします。
+
+### flatten する画像の URL
+
+`mediaUrl` は flatten 用の `<img>` だけを変えます。`name=small` かつ列幅が 680px を超えるときだけ `large` にします。すでに `medium` / `large` / `orig` なら触りません。クリック後のライトボックスは X が別 URL を読むので、この差し替えとは独立です。
+
 ## 幅と右カラム
 
 X は atomic クラス `r-1ye8kvj`（`max-width: 600px`）で列を止めます。`uncap600` がそれを外します。`syncShell` は `primaryColumn` を `--widex-width` にし、`main > div` を `width + (hideSidebar ? 0 : 420)` にします。
@@ -115,7 +134,14 @@ flatten した `<a href="/status/.../photo/N">` で画面遷移してはいけ�
 
 ## スクロール
 
-`preserveScroll` は画面内の先頭 `article[data-testid="tweet"]` の top を記録し、パッチ後に差分を `scrollTop` へ足します。高さ制限を変えると、そうしないとタイムラインがずれます。
+`preserveScroll` は画面内の先頭 `article[data-testid="tweet"]` の top を記録し、パッチ後に差分を `scrollTop` へ足します。ポップアップで幅・高さを変えたときに使います。通常の Observer パッチで使うと、ポスト詳細から戻ったあとにタイムラインが跳ねます。
+
+ポストをクリックして `/status/N` へ行き、戻ると次をします。
+
+1. 遷移前に投稿 ID と画面内オフセットを `sessionStorage["widex.scroll.v1"]` に保存する
+2. 戻ったらすぐ flatten / 高さ制限を当てる。パッチを止めると原寸が一瞬出る
+3. 保存した投稿を同じ位置へ戻し、画像読み込みで高さが変わるあいだピンする（最大約 3 秒）
+4. `releasePinOnScroll` がオンなら、ホイール / タッチ / ユーザースクロールでピンを外す。初期値はオフ（スクロールしても引き戻す）
 
 ## いずれ壊れるセレクタ
 
@@ -133,7 +159,9 @@ atomic クラスより `data-testid` を優先します。次のクラスは X �
 | `tweetPhoto` | 静止画（動画シェルになることもある） |
 | `ScrollSnap-*` | 画像カルーセル |
 | `testCondensedMedia` | 引用投稿のコラージュ |
-| `card.wrapper` | リンクカード |
+| `card.wrapper` | リンクカード。画像投票も同じ testid |
+| `card.layoutLarge.media` | リンクカードのメディア（投票には無い） |
+| `Carousel-NavRight` / `Carousel-NavLeft` | 画像投票のカルーセル |
 | `videoPlayer` / `previewInterstitial` / `playButton` | プレイヤー |
 | `sidebarColumn` / `primaryColumn` | レイアウト |
 

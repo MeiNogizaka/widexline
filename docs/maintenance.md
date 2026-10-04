@@ -9,7 +9,7 @@ X のフロントエンドはよく変わります。Widexline の不具合の�
 1. 展開済み拡張を入れた状態で、実際の x.com で再現する。
 2. 見本が必要なら投稿 HTML を **ローカルに** 保存する。場所は `スクリーンショット/`（gitignore 済み）。タイムラインのダンプはコミットしない。ログイン中のアカウント UI が入る。
 3. `r-*` クラスより `data-testid` を優先する。testid が無い、または広すぎるときだけクラスを足す。
-4. 挙動を変えたら `manifest.json` の `version` を上げる（いまは `1.7.0`）。
+4. 挙動を変えたら `manifest.json` の `version` を上げる（いまは `1.7.6`）。
 5. `content.js` と `popup.js` の `DEFAULTS` を同じに保つ。
 
 単体テストはありません。「テスト」は次の表をホームで手で確認することです。
@@ -24,13 +24,15 @@ flatten、高さ、CSS を触ったら、次を確認します。
 | 静止画 2–4 枚（カルーセル） | 横 1 行、パック、2×2 ではない。本文の下に大きな隙間が無い。 |
 | 引用の静止画 4 枚 | 引用の中も同じ 1 行。ネイティブのコラージュが残らない。幅がちらつかない。 |
 | リンクカード | 画像 / 動画がスライダーに従う。 |
+| 画像投票 | カード全体が上限 px の正方形にならない。選択肢・票数が日時に重ならない。 |
 | 動画 / GIF | 再生できる。コントロールが見える。左に寄ってから中央へ戻らない。 |
 | 画像と動画の混在 | flatten しない。高さは制限。動画は再生できる。 |
-| センシティブ / 成人向け、ぼかしたまま | 「表示」の **前から** オーバーレイもコラージュもスライダー以下。ぼかしは残る。 |
-| センシティブ、「表示」のあと | 同じ高さで画像が出る。 |
+| センシティブ / 成人向け、ぼかしたまま | 「表示」の **前から** オーバーレイもコラージュもスライダー以下。ぼかしは残る。「表示」が押せる（説明文は隠れてもよい）。 |
+| センシティブ、「表示」のあと | 同じ高さで画像が出る。「非表示にする」が押せる。 |
 | 右カラムオフ | 420px の空洞が無い。 |
 | 右カラムオン | トレンドが実際に描画される（空欄にならない）。 |
 | 高さスライダーをライブで動かす | 再読み込みなしで既存の投稿が変わる。スクロール位置は保つ。 |
+| ポスト詳細から戻る | 見ていた投稿が同じ位置。高さ制限オン。パッチを止めて原寸が一瞬出ない。 |
 | インストール直後の初回表示 | 1 フレームだけ高いぼかしから縮まない。キャッシュと `#widex-early-cap` で防ぐ。 |
 | アバター / 返信欄 | アバターが 300px にならない（`.r-13qz1uu` 除外）。 |
 
@@ -50,6 +52,9 @@ flatten、高さ、CSS を触ったら、次を確認します。
 - **オーバーレイの祖先まで制限する。** `r-1w2pmg` だけでは足りない。警告レイヤは `r-yfv4eo` / `r-l3hqri` を覆う兄弟。
 - **毎フレーム `capPlayable` しない。** `data-widex-cap-width` / `data-widex-cap-height` で固定する。
 - **画像に `naturalWidth` が付いたら `fitRow` を固定する。** そうしないと引用カルーセルの幅が振動する。
+- **投票の `card.wrapper` 全体をリンクカードとして `applyAspectCap` しない。** 枠が正方形になり、選択肢が日時に重なる。
+- **警告の「表示」ボタンを React の木から移さない。** CSS の `order` と説明文隠しにする。
+- **通常の Observer パッチで `preserveScroll` しない。** ポスト詳細から戻るとタイムラインが跳ねる。戻ったらすぐパッチし、投稿 ID で位置をピンする。
 
 ## どこを直すか
 
@@ -62,7 +67,10 @@ flatten、高さ、CSS を触ったら、次を確認します。
 | 動画が再生できない | `isPlayableMedia`、`restorePlayableMedia`。flatten がプレイヤーを隠した |
 | 動画のちらつき / コントロール欠け | `capPlayable`、`findMediaShell`。内側のノードは触らない |
 | ライトボックスでホームが再読み込みされる | `bindNativePhotoClick` / `clickOriginalPhoto` |
-| スクロールが跳ねる | `preserveScroll` |
+| スクロールが跳ねる | `preserveScroll`（設定変更時だけ）、`applyPinnedAnchor` |
+| 戻ると位置がずれる / 画像が一瞬大きい | `beginRestore`、`armPinnedAnchor`、`releasePinFromUserScroll` |
+| 「表示」が押せない | `syncWarningOverlay`、`data-widex-warning-*` |
+| 投票が潰れる | `isPollCard`、`capPollCard`、`capLinkCards` |
 | 右カラムが空白 | `syncSidebar`。`display: none` は使わない |
 | 引用がはみ出す | `fitRow`、`rowAvailWidth`、`relocateQuoteSingles` |
 | 幅が 600 のまま | `uncap600`（`r-1ye8kvj`）、`syncShell` |
@@ -86,6 +94,8 @@ Widexline が書く属性:
 - `data-widex-native-cap` / `data-widex-sensitive-native` — flatten しない高さ制限
 - `data-widex-cap` — 再生できる外側シェル
 - `data-widex-fit-h` / `data-widex-fit-lock` — パックした行のキャッシュ
+- `data-widex-poll` — 投票カード。枠は縮めない
+- `data-widex-warning-overlay` / `-stack` / `-btn` / `-desc` / `-hide` — ぼかしの「表示」「非表示」
 - `html.widex-limit-height`、`--widex-max-height`、`--widex-width`、`--widex-sidebar`
 
 `#widex-early-cap` は `<html>` 上の `<style>` です。最初の描画で無ければ、キャッシュ経路が失敗しています。

@@ -18,9 +18,10 @@ MeiNogizaka has not published Widexline on the Chrome Web Store or Edge Add-ons.
 - Show or hide the right column (Trends)
 - Cap the height of images, videos, link cards, and quotes (or leave native size)
 - Pack multiple images in a single row (no stretched equal-column gaps)
+- Leave image polls full width so choices and vote counts do not overlap the timestamp
 - Keep X’s native photo lightbox (Back does not reload Home)
 - Pin the tweet position after Back (optional: release the pin on manual scroll)
-- Keep sensitive / adult-content blur while capping height
+- Keep sensitive / adult-content blur while capping height. Show stays clickable
 - Keep videos and GIFs playable while capping height
 
 ## Install (Edge, unpacked)
@@ -53,6 +54,7 @@ Open the toolbar icon for the popup.
 | Hide right column | On | Off keeps a 420px right column |
 | Limit image height | Off | Enables the max-height slider |
 | Max height | 400px | 120–800px. Moving the slider turns the limit on |
+| Release pin on scroll after Back | Off | On drops the position pin on wheel or drag |
 
 Settings are stored in `chrome.storage.local` on the device. Nothing is sent elsewhere.
 
