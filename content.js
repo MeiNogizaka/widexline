@@ -3,6 +3,7 @@ const DEFAULTS = {
   hideSidebar: true,
   limitHeight: false,
   maxHeight: 400,
+  releasePinOnScroll: false,
 };
 
 const CACHE_KEY = "widex.cache.v1";
@@ -26,6 +27,7 @@ function writeCache(settings) {
         hideSidebar: settings.hideSidebar,
         limitHeight: settings.limitHeight,
         maxHeight: settings.maxHeight,
+        releasePinOnScroll: !!settings.releasePinOnScroll,
       })
     );
   } catch {
@@ -109,7 +111,7 @@ function applySettings(settings, { notify } = {}) {
   current = { ...DEFAULTS, ...settings };
   applyEarlyDom(current);
   writeCache(current);
-  patchTimeline();
+  patchTimeline({ holdScroll: true });
   if (notify) {
     toast(
       current.limitHeight
@@ -201,14 +203,17 @@ function syncSidebar() {
 
 function mediaUrl(url) {
   if (!url || url.startsWith("data:")) return url;
+  // name=small is ~680px. Keep it when the column is no wider than that.
+  if (current.width <= 680) return url;
   try {
     const parsed = new URL(url, location.href);
-    if (parsed.hostname.includes("twimg.com")) {
-      parsed.searchParams.set("name", "large");
-    }
+    if (!parsed.hostname.includes("twimg.com")) return parsed.toString();
+    if (parsed.searchParams.get("name") !== "small") return parsed.toString();
+    parsed.searchParams.set("name", "large");
     return parsed.toString();
   } catch {
-    return url.replace(/name=[a-z0-9_]+/i, "name=large");
+    if (!/[?&]name=small(?:&|$)/i.test(url)) return url;
+    return url.replace(/name=small\b/i, "name=large");
   }
 }
 
@@ -899,6 +904,7 @@ function fitRow(row) {
   if (!current.limitHeight) {
     imgs.forEach(capImg);
     delete row.dataset.widexFitH;
+    applyPinnedAnchor();
     return;
   }
   const avail = rowAvailWidth(row);
@@ -927,8 +933,10 @@ function fitRow(row) {
   if (imgs.every((img) => img.complete && img.naturalWidth)) {
     row.dataset.widexFitLock = "1";
   }
+  extendPinnedAnchor();
   requestAnimationFrame(() => {
     delete row.dataset.widexFitting;
+    applyPinnedAnchor();
   });
 }
 
@@ -936,7 +944,16 @@ function fitSingle(wrap) {
   wrap.style.removeProperty("zoom");
   const img = wrap.querySelector("img");
   if (img) {
-    if (!img.complete) img.addEventListener("load", () => capImg(img), { once: true });
+    if (!img.complete) {
+      img.addEventListener(
+        "load",
+        () => {
+          capImg(img);
+          applyPinnedAnchor();
+        },
+        { once: true }
+      );
+    }
     capImg(img);
   }
 }
@@ -1303,67 +1320,217 @@ function relocateQuoteSingles(col) {
   });
 }
 
-function preserveScroll(fn) {
-  if (!current.limitHeight) {
-    fn();
-    return;
-  }
-  const se = document.scrollingElement || document.documentElement;
+function isStatusPath(pathname = location.pathname) {
+  return /\/status\/\d+/.test(pathname);
+}
+
+function tweetStatusId(article) {
+  if (!article) return "";
+  const timeLink = article.querySelector("a[href*='/status/'] time")?.closest("a");
+  const href =
+    timeLink?.getAttribute("href") ||
+    article.querySelector("a[href*='/status/']")?.getAttribute("href") ||
+    "";
+  const match = String(href).match(/\/status\/(\d+)/);
+  return match?.[1] || "";
+}
+
+function findTweetByStatus(statusId) {
+  if (!statusId) return null;
   const articles = document.querySelectorAll("article[data-testid='tweet']");
-  let anchor = null;
+  for (const article of articles) {
+    if (tweetStatusId(article) === statusId) return article;
+  }
+  return null;
+}
+
+function firstVisibleTweet() {
+  const articles = document.querySelectorAll("article[data-testid='tweet']");
   for (const article of articles) {
     const rect = article.getBoundingClientRect();
-    if (rect.bottom > 100 && rect.top < window.innerHeight - 40) {
-      anchor = article;
-      break;
-    }
+    if (rect.bottom > 100 && rect.top < window.innerHeight - 40) return article;
   }
-  const fromTop = anchor ? anchor.getBoundingClientRect().top : 0;
-  fn();
-  if (anchor?.isConnected) {
-    const delta = anchor.getBoundingClientRect().top - fromTop;
-    if (Math.abs(delta) > 2) se.scrollTop += delta;
+  return null;
+}
+
+const SCROLL_KEY = "widex.scroll.v1";
+let lastClickedArticle = null;
+let pinnedAnchor = null;
+let lastPath = location.pathname;
+let restoring = false;
+let restoreStarted = 0;
+let restoreTimer = 0;
+
+function readScrollSave() {
+  try {
+    return JSON.parse(sessionStorage.getItem(SCROLL_KEY) || "");
+  } catch {
+    return null;
   }
 }
 
-function patchTimeline() {
-  syncSidebar();
-  syncShell();
-  const col = document.querySelector('[data-testid="primaryColumn"]');
-  if (!col) return;
+function writeScrollSave(data) {
+  try {
+    sessionStorage.setItem(SCROLL_KEY, JSON.stringify(data));
+  } catch {
+    /* ignore quota / privacy mode */
+  }
+}
 
-  preserveScroll(() => {
-    col.querySelectorAll(".r-1ye8kvj").forEach(uncap600);
-    restorePlayableMedia(col);
-    col.querySelectorAll("[data-testid='tweetPhoto']").forEach((photo) => {
-      if (isPlayableMedia(photo)) markPlayable(photo);
-    });
-    col
-      .querySelectorAll("[data-testid='ScrollSnap-SwipeableList']")
-      .forEach(flattenCarousel);
-    flattenPhotoGroups(col);
-    col.querySelectorAll("[data-testid='tweetPhoto']").forEach((photo) => {
-      flattenOnePhoto(photo);
-      capNativeBox(photo);
-    });
-    capUnflattenedFrames(col);
-    relocateQuoteSingles(col);
-    capLinkCards(col);
-    capVideos(col);
-    col.querySelectorAll(".widex-row").forEach((row) => {
-      watchMedia(row, fitRow);
-      fitRow(row);
-    });
-    col.querySelectorAll(".widex-single").forEach((wrap) => {
-      watchMedia(wrap, fitSingle);
-      fitSingle(wrap);
-    });
-    syncSensitive();
-    syncWarningOverlay(col);
-    col.querySelectorAll(".widex-row a, .widex-single a").forEach((link) => {
-      bindNativePhotoClick(link, link.getAttribute("href"));
-    });
+function rememberTimelineAnchor(preferred) {
+  if (isStatusPath()) return;
+  const article =
+    (preferred?.isConnected && preferred) ||
+    (lastClickedArticle?.isConnected && lastClickedArticle) ||
+    firstVisibleTweet();
+  const statusId = tweetStatusId(article);
+  if (!statusId) return;
+  writeScrollSave({
+    statusId,
+    offset: article.getBoundingClientRect().top,
+    t: Date.now(),
   });
+}
+
+function timelineScroller() {
+  return document.scrollingElement || document.documentElement;
+}
+
+let pinScrolling = 0;
+function adjustScrollBy(delta) {
+  if (Math.abs(delta) <= 2) return;
+  const se = timelineScroller();
+  pinScrolling += 1;
+  se.scrollTop += delta;
+  requestAnimationFrame(() => {
+    pinScrolling = Math.max(0, pinScrolling - 1);
+  });
+}
+
+function releasePinFromUserScroll() {
+  if (!current.releasePinOnScroll || !pinnedAnchor || pinScrolling) return;
+  pinnedAnchor = null;
+}
+
+function applyPinnedAnchor() {
+  if (!pinnedAnchor) return;
+  if (Date.now() > pinnedAnchor.until) {
+    pinnedAnchor = null;
+    return;
+  }
+  const article = findTweetByStatus(pinnedAnchor.statusId);
+  if (!article) return;
+  adjustScrollBy(article.getBoundingClientRect().top - pinnedAnchor.offset);
+}
+
+function extendPinnedAnchor() {
+  if (!pinnedAnchor) return;
+  const cap = pinnedAnchor.cap || Date.now() + 3000;
+  pinnedAnchor.until = Math.min(cap, Date.now() + 600);
+}
+
+function armPinnedAnchor() {
+  const saved = readScrollSave();
+  if (!saved?.statusId) return;
+  if (Date.now() - saved.t > 10 * 60 * 1000) return;
+  const cap = Date.now() + 3000;
+  pinnedAnchor = {
+    statusId: saved.statusId,
+    offset: saved.offset,
+    until: cap,
+    cap,
+  };
+  applyPinnedAnchor();
+}
+
+function pulsePinnedAnchor() {
+  applyPinnedAnchor();
+  [50, 150, 400, 800].forEach((ms) => setTimeout(applyPinnedAnchor, ms));
+}
+
+function preserveScroll(fn) {
+  const anchor = firstVisibleTweet();
+  const fromTop = anchor ? anchor.getBoundingClientRect().top : 0;
+  fn();
+  if (anchor?.isConnected) {
+    adjustScrollBy(anchor.getBoundingClientRect().top - fromTop);
+  }
+}
+
+function patchColumn(col) {
+  col.querySelectorAll(".r-1ye8kvj").forEach(uncap600);
+  restorePlayableMedia(col);
+  col.querySelectorAll("[data-testid='tweetPhoto']").forEach((photo) => {
+    if (isPlayableMedia(photo)) markPlayable(photo);
+  });
+  col.querySelectorAll("[data-testid='ScrollSnap-SwipeableList']").forEach(flattenCarousel);
+  flattenPhotoGroups(col);
+  col.querySelectorAll("[data-testid='tweetPhoto']").forEach((photo) => {
+    flattenOnePhoto(photo);
+    capNativeBox(photo);
+  });
+  capUnflattenedFrames(col);
+  relocateQuoteSingles(col);
+  capLinkCards(col);
+  capVideos(col);
+  col.querySelectorAll(".widex-row").forEach((row) => {
+    watchMedia(row, fitRow);
+    fitRow(row);
+  });
+  col.querySelectorAll(".widex-single").forEach((wrap) => {
+    watchMedia(wrap, fitSingle);
+    fitSingle(wrap);
+  });
+  syncSensitive();
+  syncWarningOverlay(col);
+  col.querySelectorAll(".widex-row a, .widex-single a").forEach((link) => {
+    bindNativePhotoClick(link, link.getAttribute("href"));
+  });
+}
+
+function patchTimeline({ holdScroll } = {}) {
+  const run = () => {
+    syncSidebar();
+    syncShell();
+    const col = document.querySelector('[data-testid="primaryColumn"]');
+    if (!col) return;
+    patchColumn(col);
+  };
+  if (holdScroll) preserveScroll(run);
+  else run();
+  applyPinnedAnchor();
+}
+
+function finishRestore() {
+  const col = document.querySelector('[data-testid="primaryColumn"]');
+  const n = col?.querySelectorAll("article[data-testid='tweet']").length || 0;
+  if (n < 1 && Date.now() - restoreStarted < 1000) {
+    restoring = true;
+    restoreTimer = setTimeout(finishRestore, 50);
+    return;
+  }
+  restoring = false;
+  patchTimeline();
+  armPinnedAnchor();
+  pulsePinnedAnchor();
+}
+
+function scheduleRestoreFinish() {
+  clearTimeout(restoreTimer);
+  const wait = Date.now() - restoreStarted >= 1000 ? 0 : 180;
+  restoreTimer = setTimeout(finishRestore, wait);
+}
+
+function beginRestore() {
+  if (restoring) {
+    scheduleRestoreFinish();
+    return;
+  }
+  restoring = true;
+  restoreStarted = Date.now();
+  armPinnedAnchor();
+  schedulePatch();
+  scheduleRestoreFinish();
 }
 
 let scheduled = false;
@@ -1373,8 +1540,65 @@ function schedulePatch() {
   requestAnimationFrame(() => {
     scheduled = false;
     patchTimeline();
+    if (restoring) scheduleRestoreFinish();
   });
 }
+
+function onPathChange() {
+  const from = lastPath;
+  const to = location.pathname;
+  if (from === to) return;
+  lastPath = to;
+  if (isStatusPath(from) && !isStatusPath(to)) beginRestore();
+}
+
+function hookHistory() {
+  const origPush = history.pushState;
+  const origReplace = history.replaceState;
+  history.pushState = function (...args) {
+    if (!isStatusPath()) rememberTimelineAnchor();
+    const ret = origPush.apply(this, args);
+    onPathChange();
+    return ret;
+  };
+  history.replaceState = function (...args) {
+    const ret = origReplace.apply(this, args);
+    onPathChange();
+    return ret;
+  };
+  window.addEventListener("popstate", onPathChange);
+  if (window.navigation) {
+    window.navigation.addEventListener("navigate", (event) => {
+      try {
+        const dest = new URL(event.destination.url, location.href);
+        if (dest.origin !== location.origin) return;
+        if (!isStatusPath(location.pathname) && isStatusPath(dest.pathname)) {
+          rememberTimelineAnchor();
+        }
+      } catch {
+        /* ignore invalid destination */
+      }
+    });
+    window.navigation.addEventListener("navigatesuccess", onPathChange);
+  }
+}
+
+document.addEventListener(
+  "click",
+  (event) => {
+    const article = event.target?.closest?.("article[data-testid='tweet']");
+    if (!article || isStatusPath()) return;
+    lastClickedArticle = article;
+    rememberTimelineAnchor(article);
+  },
+  true
+);
+
+hookHistory();
+
+window.addEventListener("wheel", releasePinFromUserScroll, { capture: true, passive: true });
+window.addEventListener("touchmove", releasePinFromUserScroll, { capture: true, passive: true });
+window.addEventListener("scroll", releasePinFromUserScroll, { capture: true, passive: true });
 
 readSettings(applySettings);
 
