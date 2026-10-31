@@ -17,7 +17,7 @@ There is no background service worker and no build step.
 
 ## Settings
 
-Five keys, same defaults in `content.js` and `popup.js`:
+Six keys, same defaults in `content.js` and `popup.js`:
 
 ```js
 {
@@ -26,6 +26,7 @@ Five keys, same defaults in `content.js` and `popup.js`:
   limitHeight: false,
   maxHeight: 400,
   releasePinOnScroll: false,
+  keepHiddenSize: true,
 }
 ```
 
@@ -76,7 +77,7 @@ Sources:
 - quote 2×2: `[data-testid="testCondensedMedia"]`
 - other multi-image groups sharing a tweet/quote root
 
-The native box is hidden with `data-widex-hidden="1"`. Images use `object-fit: contain` and `max-height`. A height-limited row is packed with `fitRow`: each image keeps its aspect ratio at a common height; if the sum of widths exceeds the row, the common height is scaled down so there is no equal-column gap.
+The native box is hidden with `data-widex-hidden="1"`. With `keepHiddenSize` on, it stays out of flow but keeps a timeline-sized box. A 0×0 box makes X select `name=120x120`, so the clicked photo is slow to appear. Off restores `display: none`. Images use `object-fit: contain` and `max-height`. A height-limited row is packed with `fitRow`: each image keeps its aspect ratio at a common height; if the sum of widths exceeds the row, the common height is scaled down so there is no equal-column gap.
 
 Flatten is **skipped** when any of these is true:
 

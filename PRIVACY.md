@@ -5,7 +5,7 @@ Widexline does not collect, transmit, or sell personal data.
 ## What the extension accesses
 
 - Pages on `https://x.com/*` and `https://twitter.com/*` only, via Manifest V3 content scripts.
-- `chrome.storage.local` for five settings: timeline width, hide-sidebar, height-limit toggle, max height, and whether Back-navigation pin releases on manual scroll.
+- `chrome.storage.local` for six settings: timeline width, hide-sidebar, height-limit toggle, max height, whether Back-navigation pin releases on manual scroll, and whether replaced media keeps a measurable size.
 - `localStorage` on those same origins, under the key `widex.cache.v1`, so the last-used settings can apply before `chrome.storage` returns.
 
 ## What it does not do

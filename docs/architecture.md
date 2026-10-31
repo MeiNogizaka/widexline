@@ -17,7 +17,7 @@ Widexline は Manifest V3 のコンテンツスクリプトです。X の React 
 
 ## 設定
 
-キーは 5 つ。`content.js` と `popup.js` の初期値は同じです。
+キーは 6 つ。`content.js` と `popup.js` の初期値は同じです。
 
 ```js
 {
@@ -26,6 +26,7 @@ Widexline は Manifest V3 のコンテンツスクリプトです。X の React 
   limitHeight: false,
   maxHeight: 400,
   releasePinOnScroll: false,
+  keepHiddenSize: true,
 }
 ```
 
@@ -76,7 +77,7 @@ X のメディアはアスペクト比ボックスです。`padding-bottom: N%` 
 - 引用の 2×2: `[data-testid="testCondensedMedia"]`
 - 同じ投稿 / 引用を共有する、それ以外の複数画像
 
-ネイティブ側は `data-widex-hidden="1"` で隠します。画像は `object-fit: contain` と `max-height` です。高さ制限時の行は `fitRow` でパックします。各画像は同じ高さで縦横比を保ち、幅の合計が行を超えたら高さを下げ、等幅の隙間を作りません。
+ネイティブ側は `data-widex-hidden="1"` で隠します。`keepHiddenSize` がオンのときは画面の流れから外しつつ、タイムライン幅の大きさを残します。幅も高さも 0 になると、X は `name=120x120` を選び、クリック後の画像が遅くなります。オフにすると以前どおり `display: none` です。画像は `object-fit: contain` と `max-height` です。高さ制限時の行は `fitRow` でパックします。各画像は同じ高さで縦横比を保ち、幅の合計が行を超えたら高さを下げ、等幅の隙間を作りません。
 
 次のいずれかなら flatten **しません**。
 

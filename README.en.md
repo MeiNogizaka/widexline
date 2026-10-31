@@ -55,6 +55,7 @@ Open the toolbar icon for the popup.
 | Limit image height | Off | Enables the max-height slider |
 | Max height | 400px | 120–800px. Moving the slider turns the limit on |
 | Release pin on scroll after Back | Off | On drops the position pin on wheel or drag |
+| Show a large photo as soon as it is opened | On | Off collapses the hidden native photo the old way |
 
 Settings are stored in `chrome.storage.local` on the device. Nothing is sent elsewhere.
 

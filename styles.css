@@ -127,7 +127,8 @@ html.widex-limit-height .widex-single img {
   object-fit: contain !important;
 }
 
-[data-widex-hidden="1"] {
+/* Off: previous collapse. A 0×0 box makes X request name=120x120. */
+html:not(.widex-keep-hidden-size) [data-widex-hidden="1"] {
   display: none !important;
   height: 0 !important;
   overflow: hidden !important;
@@ -135,13 +136,44 @@ html.widex-limit-height .widex-single img {
   margin: 0 !important;
 }
 
-[data-widex-hidden="1"]:has([data-widex-playable="1"]),
-[data-widex-hidden="1"]:has([data-testid="videoPlayer"]),
-[data-widex-hidden="1"]:has([data-testid="previewInterstitial"]),
-[data-widex-hidden="1"]:has([data-testid="playButton"]),
-[data-widex-hidden="1"]:has(video) {
+/* On: out of flow, but wide enough for X to keep a timeline-sized image. */
+html.widex-keep-hidden-size [data-widex-hidden="1"] {
   display: block !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: visible !important;
+}
+
+html:not(.widex-keep-hidden-size) [data-widex-hidden="1"]:has([data-widex-playable="1"]),
+html:not(.widex-keep-hidden-size) [data-widex-hidden="1"]:has([data-testid="videoPlayer"]),
+html:not(.widex-keep-hidden-size) [data-widex-hidden="1"]:has([data-testid="previewInterstitial"]),
+html:not(.widex-keep-hidden-size) [data-widex-hidden="1"]:has([data-testid="playButton"]),
+html:not(.widex-keep-hidden-size) [data-widex-hidden="1"]:has(video),
+html.widex-keep-hidden-size [data-widex-hidden="1"]:has([data-widex-playable="1"]),
+html.widex-keep-hidden-size [data-widex-hidden="1"]:has([data-testid="videoPlayer"]),
+html.widex-keep-hidden-size [data-widex-hidden="1"]:has([data-testid="previewInterstitial"]),
+html.widex-keep-hidden-size [data-widex-hidden="1"]:has([data-testid="playButton"]),
+html.widex-keep-hidden-size [data-widex-hidden="1"]:has(video) {
+  display: block !important;
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  width: auto !important;
   height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
   overflow: visible !important;
   padding: revert !important;
   margin: revert !important;

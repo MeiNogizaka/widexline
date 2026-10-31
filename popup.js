@@ -4,6 +4,7 @@ const DEFAULTS = {
   limitHeight: false,
   maxHeight: 400,
   releasePinOnScroll: false,
+  keepHiddenSize: true,
 };
 
 const width = document.getElementById("width");
@@ -14,6 +15,7 @@ const maxHeight = document.getElementById("maxHeight");
 const maxHeightOut = document.getElementById("maxHeightOut");
 const maxHeightUnit = document.getElementById("maxHeightUnit");
 const releasePinOnScroll = document.getElementById("releasePinOnScroll");
+const keepHiddenSize = document.getElementById("keepHiddenSize");
 const reset = document.getElementById("reset");
 const statusEl = document.getElementById("status");
 
@@ -23,6 +25,7 @@ function render(settings) {
   hideSidebar.checked = !!settings.hideSidebar;
   limitHeight.checked = !!settings.limitHeight;
   releasePinOnScroll.checked = !!settings.releasePinOnScroll;
+  keepHiddenSize.checked = settings.keepHiddenSize !== false;
   maxHeight.value = String(settings.maxHeight);
   if (settings.limitHeight) {
     maxHeightOut.value = String(settings.maxHeight);
@@ -126,6 +129,10 @@ maxHeight.addEventListener("input", () => {
 
 releasePinOnScroll.addEventListener("change", () => {
   save({ releasePinOnScroll: releasePinOnScroll.checked });
+});
+
+keepHiddenSize.addEventListener("change", () => {
+  save({ keepHiddenSize: keepHiddenSize.checked });
 });
 
 reset.addEventListener("click", () => {
