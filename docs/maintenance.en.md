@@ -9,7 +9,7 @@ X ships a new frontend often. Most Widexline bugs are “a selector stopped matc
 1. Reproduce on a live x.com tab with the unpacked extension loaded.
 2. Save the tweet HTML **locally** if you need a fixture. Put it under `スクリーンショット/` (gitignored). Do not commit timeline dumps; they contain the logged-in account UI.
 3. Prefer `data-testid` over `r-*` classes. Add a class only when the testid is missing or too broad.
-4. Bump `manifest.json` `version` for any behavior change (current: `1.7.6`).
+4. Bump `manifest.json` `version` for any behavior change (current: `1.7.9`).
 5. Keep `DEFAULTS` in `content.js` and `popup.js` identical.
 
 There are no unit tests. The “test suite” is the cases below, exercised on Home.
@@ -21,6 +21,7 @@ Run these after any change to flattening, height, or CSS.
 | Case | Expect |
 | --- | --- |
 | Single still | Height = slider (or native if off). Not cropped. Click opens X lightbox, Back stays on Home. |
+| Height limit, still not loaded yet | The frame already occupies the final height (packed height for several). When `small` is upgraded to `large`, `small` shows first and the height stays after `large` arrives. |
 | 2–4 stills (carousel) | One horizontal row, packed, no 2×2, no huge gap under the text. |
 | Quote with 4 stills | Same row inside the quote. No leftover native collage. No width flicker. |
 | Link card | Image/video follows the slider. |
@@ -44,6 +45,7 @@ Do not undo these without a new reason.
 
 - **Do not flatten** playable, sensitive, or mixed posts. Flatten hid the player or removed the blur overlay.
 - **Do not set `display: none` on `sidebarColumn`.** Trends stay empty after it is shown again.
+- **Do not zero a visible sidebar's `margin-top` / `top` when it is near the scroll position.** That offset is how the column stays on screen when the user scrolls up; clearing it sends the column above the viewport. Only clear virtualization spacers well past that.
 - **Do not `max-height` the inner `videoPlayer`.** Controls get clipped; the player flickers.
 - **Do not navigate to `/photo/N`.** Use the original hidden `<a>` click so X's SPA lightbox opens.
 - **Do not use `zoom` or `getBoundingClientRect` to scale.** Zoom compounded to ~1e-88.

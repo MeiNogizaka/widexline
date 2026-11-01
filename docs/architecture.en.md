@@ -79,6 +79,8 @@ Sources:
 
 The native box is hidden with `data-widex-hidden="1"`. With `keepHiddenSize` on, it stays out of flow but keeps a timeline-sized box. A 0×0 box makes X select `name=120x120`, so the clicked photo is slow to appear. Off restores `display: none`. Images use `object-fit: contain` and `max-height`. A height-limited row is packed with `fitRow`: each image keeps its aspect ratio at a common height; if the sum of widths exceeds the row, the common height is scaled down so there is no equal-column gap.
 
+With the height limit on, the final height is reserved before pixels arrive. Each photo's `padding-bottom` gives the aspect ratio up front, so a multi-image row reserves the packed height (at most the cap). Unknown ratios reserve the cap height. When the column is wider than 680px and the original URL is `name=small`, that frame shows `small` first and swaps to `large` after that download finishes. When the column is 680px or narrower, or the original name is not `small` (`medium`, `large`, `orig`, `120x120`, and the rest), the final URL is loaded once into that frame. Other names are not rewritten to `small`. The post does not jump while the bytes arrive.
+
 Flatten is **skipped** when any of these is true:
 
 - sensitive / content-warning text is present
@@ -115,13 +117,13 @@ A height cap can hide the Show button behind the warning description. Do not mov
 
 ### Flatten image URLs
 
-`mediaUrl` only rewrites flatten `<img>` sources. It upgrades `name=small` to `large` when the column is wider than 680px. `medium` / `large` / `orig` are left alone. The lightbox loads its own URL from X, independent of this rewrite.
+`mediaUrl` only rewrites flatten `<img>` sources. It upgrades `name=small` to `large` when the column is wider than 680px. The frame shows the original `small` URL until `large` has downloaded. `medium` / `large` / `orig` and other sizes such as `120x120` are left alone, and are not rewritten to `small`. The lightbox loads its own URL from X, independent of this rewrite.
 
 ## Width and sidebar
 
 X caps the column with atomic class `r-1ye8kvj` (`max-width: 600px`). `uncap600` clears that. `syncShell` sets `primaryColumn` to `--widex-width` and the `main > div` shell to `width + (hideSidebar ? 0 : 420)`.
 
-The sidebar is **not** `display: none`. Hiding it that way left an empty 420px hole and killed Trend rendering when shown again. Hide is width/opacity/overflow/pointer-events. Showing again removes those properties and resets the huge `margin-top` spacers X uses for virtualization.
+The sidebar is **not** `display: none`. Hiding it that way left an empty 420px hole and killed Trend rendering when shown again. Hide is width/opacity/overflow/pointer-events. Showing again removes those properties and resets the huge `margin-top` spacers X uses for virtualization. Only values well past the scroll position are cleared. Zeroing the follow `margin-top` / `top` X writes near the scroll position when the user scrolls up sends the column above the viewport.
 
 ## Lightbox
 

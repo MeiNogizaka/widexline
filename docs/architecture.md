@@ -79,6 +79,8 @@ X のメディアはアスペクト比ボックスです。`padding-bottom: N%` 
 
 ネイティブ側は `data-widex-hidden="1"` で隠します。`keepHiddenSize` がオンのときは画面の流れから外しつつ、タイムライン幅の大きさを残します。幅も高さも 0 になると、X は `name=120x120` を選び、クリック後の画像が遅くなります。オフにすると以前どおり `display: none` です。画像は `object-fit: contain` と `max-height` です。高さ制限時の行は `fitRow` でパックします。各画像は同じ高さで縦横比を保ち、幅の合計が行を超えたら高さを下げ、等幅の隙間を作りません。
 
+高さ制限がオンのとき、最終の高さの枠を先に確保します。縦横比は各画像の `padding-bottom` から先に分かるので、複数枚はパック後の高さ（上限以下）です。比率がまだ無いときは上限の高さにします。列幅が 680px を超えていて元 URL が `name=small` のときは、その枠へ先に `small` を表示し、`large` のダウンロードが終わってから差し替えます。列が 680px 以下、または元が `small` 以外（`medium` / `large` / `orig` / `120x120` など）のときは、本番の URL をその枠へ 1 回だけ読みます。別の name から `small` は作りません。読み込み前後で投稿の高さは動きません。
+
 次のいずれかなら flatten **しません**。
 
 - センシティブ / 内容の警告がある
@@ -115,13 +117,13 @@ CSS と早期の `#widex-early-cap` が当てる対象は次です。
 
 ### flatten する画像の URL
 
-`mediaUrl` は flatten 用の `<img>` だけを変えます。`name=small` かつ列幅が 680px を超えるときだけ `large` にします。すでに `medium` / `large` / `orig` なら触りません。クリック後のライトボックスは X が別 URL を読むので、この差し替えとは独立です。
+`mediaUrl` は flatten 用の `<img>` だけを変えます。`name=small` かつ列幅が 680px を超えるときだけ `large` にします。表示は先に元の `small` で、`large` が届いてから差し替えます。すでに `medium` / `large` / `orig`、または `120x120` のような別サイズなら触りません。`small` へも書き換えません。クリック後のライトボックスは X が別 URL を読むので、この差し替えとは独立です。
 
 ## 幅と右カラム
 
 X は atomic クラス `r-1ye8kvj`（`max-width: 600px`）で列を止めます。`uncap600` がそれを外します。`syncShell` は `primaryColumn` を `--widex-width` にし、`main > div` を `width + (hideSidebar ? 0 : 420)` にします。
 
-右カラムは **`display: none` にしません**。そうすると 420px の空洞が残り、再表示したときにトレンドが描画されなくなりました。隠し方は width / opacity / overflow / pointer-events です。再表示ではそれらのプロパティを外し、仮想化用の大きな `margin-top` スペーサーを戻します。
+右カラムは **`display: none` にしません**。そうすると 420px の空洞が残り、再表示したときにトレンドが描画されなくなりました。隠し方は width / opacity / overflow / pointer-events です。再表示ではそれらのプロパティを外し、仮想化用の大きな `margin-top` スペーサーを戻します。戻すのはスクロール位置より十分大きい値だけです。上方向へ切り替えたとき X が書く追従用の `margin-top` / `top`（スクロール位置付近）を 0 にすると、列がビューポートの上に消えます。
 
 ## ライトボックス
 

@@ -155,13 +155,19 @@ function syncShell() {
 }
 
 function resetSidebarSpacers(side) {
+  const scrollTop = Math.max(0, document.scrollingElement?.scrollTop || 0);
+  // X pins the column while scrolling by setting margin-top / top near the
+  // scroll position (especially when the direction flips to upward). Those
+  // values pass the old 2000px check and the column jumps above the viewport.
+  // Spacers left by a width:0 column are far past the scroll position.
+  const ceiling = Math.max(2000, scrollTop + (window.innerHeight || 0) + 2000);
   side.querySelectorAll("div[style]").forEach((el) => {
     const marginTop = parseFloat(el.style.marginTop);
-    if (Number.isFinite(marginTop) && Math.abs(marginTop) > 2000) {
+    if (Number.isFinite(marginTop) && Math.abs(marginTop) > ceiling) {
       el.style.marginTop = "0px";
     }
     const top = parseFloat(el.style.top);
-    if (Number.isFinite(top) && Math.abs(top) > 2000) {
+    if (Number.isFinite(top) && Math.abs(top) > ceiling) {
       el.style.top = "0px";
     }
     const minHeight = parseFloat(el.style.minHeight);
@@ -220,14 +226,39 @@ function mediaUrl(url) {
   }
 }
 
-function photoUrl(photo) {
+function rawPhotoUrl(photo) {
   const bg = photo.querySelector("[style*='background-image']");
   if (bg) {
     const match = String(bg.style.backgroundImage).match(/url\((['"]?)(.+?)\1\)/);
-    if (match?.[2]) return mediaUrl(match[2]);
+    if (match?.[2]) return match[2];
   }
   const img = photo.querySelector("img");
-  return mediaUrl(img?.currentSrc || img?.src || "");
+  return img?.currentSrc || img?.src || "";
+}
+
+function photoUrl(photo) {
+  return mediaUrl(rawPhotoUrl(photo));
+}
+
+// The visible stand-in is the original name=small URL, and only when mediaUrl
+// actually upgrades it to large. Other names (120x120, medium, orig) stay as
+// they are — rewriting those to small would load a size we then throw away.
+function smallPreview(raw) {
+  if (!raw || raw.startsWith("data:")) return "";
+  const upgraded = mediaUrl(raw);
+  if (!upgraded || upgraded === raw) return "";
+  try {
+    const before = new URL(raw, location.href);
+    const after = new URL(upgraded, location.href);
+    if (!before.hostname.includes("twimg.com")) return "";
+    if ((before.searchParams.get("name") || "").toLowerCase() !== "small") return "";
+    if ((after.searchParams.get("name") || "").toLowerCase() !== "large") return "";
+    return raw;
+  } catch {
+    if (!/[?&]name=small(?:&|$)/i.test(raw)) return "";
+    if (!/[?&]name=large(?:&|$)/i.test(upgraded)) return "";
+    return raw;
+  }
 }
 
 function isSensitiveText(text) {
@@ -415,6 +446,20 @@ function capImg(img) {
     return;
   }
   img.style.removeProperty("zoom");
+  if (!current.limitHeight && img.dataset.widexPending === "1" && img.dataset.widexSrc) {
+    delete img.dataset.widexPending;
+    img.classList.remove("widex-pending");
+    img.alt = "";
+    img.src = img.dataset.widexSrc;
+  }
+  if (current.limitHeight && img.dataset.widexPending === "1" && !img.closest(".widex-row")) {
+    const aspect = parseFloat(img.dataset.widexAspect || "") || 1;
+    applyHold(img, Math.round(current.maxHeight * aspect), current.maxHeight);
+    return;
+  }
+  img.classList.remove("widex-pending");
+  img.style.removeProperty("--widex-hold-w");
+  img.style.removeProperty("--widex-hold-h");
   const link = img.closest(".widex-row > a");
   if (!current.limitHeight) {
     img.style.setProperty("width", "100%", "important");
@@ -427,10 +472,15 @@ function capImg(img) {
     }
     return;
   }
-  img.style.setProperty("width", "auto", "important");
-  img.style.setProperty("height", "auto", "important");
-  img.style.removeProperty("max-width");
-  img.style.setProperty("max-height", `${current.maxHeight}px`, "important");
+  // Keep the reserved box. height:auto would shrink to the intrinsic pixels
+  // and pull the post the reader is on.
+  const aspect = imageAspect(img) || 1;
+  const height = current.maxHeight;
+  const width = Math.max(1, Math.round(height * aspect));
+  img.style.setProperty("width", `${width}px`, "important");
+  img.style.setProperty("height", `${height}px`, "important");
+  img.style.setProperty("max-width", `${width}px`, "important");
+  img.style.setProperty("max-height", `${height}px`, "important");
   img.style.setProperty("object-fit", "contain", "important");
   if (link) {
     link.style.setProperty("flex", "0 0 auto", "important");
@@ -880,23 +930,168 @@ function rowAvailWidth(row) {
   return widths.length ? Math.min(...widths) : 0;
 }
 
+function imageAspect(img) {
+  if (img?.dataset?.widexPending !== "1") {
+    const nw = img?.naturalWidth || 0;
+    const nh = img?.naturalHeight || 0;
+    const src = String(img?.currentSrc || img?.src || "");
+    if (nw > 0 && nh > 0 && !src.startsWith("data:")) return nw / nh;
+  }
+  const stored = parseFloat(img?.dataset?.widexAspect || "");
+  return stored > 0 ? stored : 0;
+}
+
 function packedRowHeight(row) {
   const imgs = [...row.querySelectorAll(":scope > a img")];
   if (!imgs.length) return current.maxHeight;
+  const aspects = imgs.map(imageAspect);
+  if (aspects.some((aspect) => aspect <= 0)) return current.maxHeight;
   const avail = rowAvailWidth(row);
   const gap = 2;
   let total = 0;
-  let ready = 0;
-  imgs.forEach((img, i) => {
-    const nw = img.naturalWidth;
-    const nh = img.naturalHeight;
-    if (nw > 0 && nh > 0) {
-      ready += 1;
-      total += (current.maxHeight * nw) / nh + (i ? gap : 0);
-    }
+  aspects.forEach((aspect, i) => {
+    total += current.maxHeight * aspect + (i ? gap : 0);
   });
-  if (ready === 0 || avail <= 0 || total <= avail) return current.maxHeight;
+  if (avail <= 0 || total <= avail) return current.maxHeight;
   return Math.max(1, Math.floor(current.maxHeight * (avail / total)));
+}
+
+function photoAspectRatio(photo) {
+  const nodes = [photo, ...photo.querySelectorAll("[style*='padding-bottom']")];
+  for (const el of nodes) {
+    const pct = spacerPct(el);
+    if (pct > 10) return 100 / pct;
+  }
+  return 0;
+}
+
+function applyHold(img, w, h) {
+  const width = Math.max(1, Math.round(w));
+  const height = Math.max(1, Math.round(h));
+  img.style.setProperty("--widex-hold-w", `${width}px`);
+  img.style.setProperty("--widex-hold-h", `${height}px`);
+  img.classList.add("widex-pending");
+}
+
+function finishPhoto(img) {
+  const row = img.closest(".widex-row");
+  if (row) {
+    delete row.dataset.widexFitH;
+    delete row.dataset.widexFitLock;
+    fitRow(row);
+  } else {
+    capImg(img);
+  }
+  applyPinnedAnchor();
+}
+
+function settlePhoto(img) {
+  if (!img.isConnected) return;
+  delete img.dataset.widexPending;
+  img.classList.remove("widex-pending");
+  img.style.removeProperty("--widex-hold-w");
+  img.style.removeProperty("--widex-hold-h");
+  if (img.naturalWidth) img.alt = "";
+  finishPhoto(img);
+}
+
+function revealPhoto(img, url, loader) {
+  if (!img.isConnected) return;
+  const aspect = loader.naturalHeight > 0 ? loader.naturalWidth / loader.naturalHeight : 0;
+  if (aspect > 0) img.dataset.widexAspect = String(aspect);
+  const holdW = img.style.getPropertyValue("--widex-hold-w");
+  const holdH = img.style.getPropertyValue("--widex-hold-h");
+  const real = document.createElement("img");
+  real.alt = "";
+  real.dataset.widexPrimed = "1";
+  real.dataset.widexSrc = url;
+  if (img.dataset.widexAspect) real.dataset.widexAspect = img.dataset.widexAspect;
+  if (holdW) real.style.setProperty("width", holdW, "important");
+  if (holdH) {
+    real.style.setProperty("height", holdH, "important");
+    real.style.setProperty("max-height", holdH, "important");
+  }
+  let committed = false;
+  const commit = () => {
+    if (committed || !img.isConnected) return;
+    committed = true;
+    img.replaceWith(real);
+    finishPhoto(real);
+  };
+  real.addEventListener("load", commit, { once: true });
+  real.addEventListener(
+    "error",
+    () => {
+      if (!committed) settlePhoto(img);
+    },
+    { once: true }
+  );
+  real.src = url;
+  if (real.complete && real.naturalWidth) commit();
+}
+
+function primePending(img, w, h) {
+  if (!current.limitHeight || !img?.dataset?.widexSrc) return;
+  if (img.dataset.widexPrimed === "1") {
+    if (img.dataset.widexPending === "1") applyHold(img, w, h);
+    return;
+  }
+  img.dataset.widexPrimed = "1";
+  img.dataset.widexPending = "1";
+  img.alt = "";
+  applyHold(img, w, h);
+  const url = img.dataset.widexSrc;
+  const preview = img.dataset.widexPreview || "";
+  if (!preview || preview === url) {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      settlePhoto(img);
+    };
+    img.addEventListener("load", done, { once: true });
+    img.addEventListener(
+      "error",
+      () => {
+        if (img.isConnected) img.alt = "画像を読み込めませんでした";
+        done();
+      },
+      { once: true }
+    );
+    img.src = url;
+    if (img.complete && img.naturalWidth) done();
+    return;
+  }
+  // small is on screen immediately. large is decoded off to the side and
+  // swapped in, so the post keeps this box the whole time.
+  img.src = preview;
+  queueMicrotask(() => {
+    if (!img.isConnected) {
+      delete img.dataset.widexPrimed;
+      return;
+    }
+    if (img.dataset.widexFetching === "1") return;
+    img.dataset.widexFetching = "1";
+    const loader = new Image();
+    loader.onload = () => revealPhoto(img, url, loader);
+    loader.onerror = () => {
+      if (!img.isConnected) return;
+      if (!img.naturalWidth) img.alt = "画像を読み込めませんでした";
+      settlePhoto(img);
+    };
+    loader.src = url;
+  });
+}
+
+function holdPendingMedia(container) {
+  if (!current.limitHeight) return;
+  const row = container.classList?.contains("widex-row") ? container : null;
+  const height = row ? packedRowHeight(row) : current.maxHeight;
+  container.querySelectorAll("img").forEach((img) => {
+    const aspect = parseFloat(img.dataset.widexAspect || "") || 0;
+    const w = Math.max(1, Math.round(height * (aspect > 0 ? aspect : 1)));
+    primePending(img, w, height);
+  });
 }
 
 function fitRow(row) {
@@ -922,19 +1117,33 @@ function fitRow(row) {
   row.dataset.widexFitting = "1";
   row.dataset.widexFitH = key;
   imgs.forEach((img) => {
-    img.style.setProperty("width", "auto", "important");
-    img.style.setProperty("height", "auto", "important");
-    img.style.removeProperty("max-width");
-    img.style.setProperty("max-height", `${height}px`, "important");
-    img.style.setProperty("object-fit", "contain", "important");
     const link = img.closest(".widex-row > a");
+    if (img.dataset.widexPending === "1") {
+      const aspect = parseFloat(img.dataset.widexAspect || "") || 0;
+      applyHold(img, Math.round(height * (aspect > 0 ? aspect : 1)), height);
+    } else {
+      img.classList.remove("widex-pending");
+      img.style.removeProperty("--widex-hold-w");
+      img.style.removeProperty("--widex-hold-h");
+      const aspect = imageAspect(img) || 1;
+      const w = Math.max(1, Math.round(height * aspect));
+      img.style.setProperty("width", `${w}px`, "important");
+      img.style.setProperty("height", `${height}px`, "important");
+      img.style.setProperty("max-width", `${w}px`, "important");
+      img.style.setProperty("max-height", `${height}px`, "important");
+      img.style.setProperty("object-fit", "contain", "important");
+    }
     if (link) {
       link.style.setProperty("flex", "0 0 auto", "important");
       link.style.setProperty("width", "auto", "important");
     }
   });
   row.dataset.widexFitAvail = String(avail);
-  if (imgs.every((img) => img.complete && img.naturalWidth)) {
+  if (
+    imgs.every(
+      (img) => img.dataset.widexPending !== "1" && img.complete && img.naturalWidth
+    )
+  ) {
     row.dataset.widexFitLock = "1";
   }
   extendPinnedAnchor();
@@ -1095,18 +1304,23 @@ function isSinglePhoto(photo) {
   return photos.length === 1;
 }
 
-function makeSingleWrap(href, url) {
+function makeSingleWrap(href, url, aspect, preview) {
   const wrap = document.createElement("div");
   wrap.className = "widex-single";
   const link = document.createElement("a");
   link.href = href || url;
   link.rel = "noopener";
   const img = document.createElement("img");
-  img.src = url;
   img.alt = "";
-  img.addEventListener("load", () => capImg(img), { once: true });
+  img.dataset.widexSrc = url;
+  if (preview) img.dataset.widexPreview = preview;
+  if (aspect > 0) img.dataset.widexAspect = String(aspect);
   link.appendChild(img);
   wrap.appendChild(link);
+  if (!current.limitHeight) {
+    img.src = url;
+    img.addEventListener("load", () => capImg(img), { once: true });
+  }
   bindNativePhotoClick(link, link.getAttribute("href"));
   return wrap;
 }
@@ -1187,7 +1401,8 @@ function flattenOnePhoto(photo) {
   if (!photoLink) return;
   if (!isSinglePhoto(photo)) return;
 
-  const url = photoUrl(photo);
+  const raw = rawPhotoUrl(photo);
+  const url = mediaUrl(raw);
   if (!url) return;
   if (/amplify_video_thumb|ext_tw_video_thumb|tweet_video_thumb|video\.twimg\.com/i.test(url)) {
     markPlayable(photo);
@@ -1212,8 +1427,14 @@ function flattenOnePhoto(photo) {
     return;
   }
 
-  const wrap = makeSingleWrap(photoLink.getAttribute("href") || url, url);
+  const wrap = makeSingleWrap(
+    photoLink.getAttribute("href") || url,
+    url,
+    photoAspectRatio(photo),
+    smallPreview(raw)
+  );
   parent.insertBefore(wrap, before);
+  holdPendingMedia(wrap);
   hideNative(quoteHost?.condensed || card);
   watchMedia(wrap, fitSingle);
   fitSingle(wrap);
@@ -1229,10 +1450,15 @@ function flattenCarousel(swipe) {
   if (photos.some((photo) => isPlayableMedia(photo))) return;
 
   const items = photos
-    .map((photo) => ({
-      url: photoUrl(photo),
-      href: photo.closest("a")?.getAttribute("href") || "",
-    }))
+    .map((photo) => {
+      const raw = rawPhotoUrl(photo);
+      return {
+        url: mediaUrl(raw),
+        preview: smallPreview(raw),
+        href: photo.closest("a")?.getAttribute("href") || "",
+        aspect: photoAspectRatio(photo),
+      };
+    })
     .filter((item) => item.url);
 
   if (items.length < 2) return;
@@ -1245,21 +1471,12 @@ function flattenCarousel(swipe) {
   if (!row) {
     row = document.createElement("div");
     row.className = "widex-row";
-    items.forEach((item) => {
-      const link = document.createElement("a");
-      link.href = item.href || item.url;
-      link.rel = "noopener";
-      const img = document.createElement("img");
-      img.src = item.url;
-      img.alt = "";
-      link.appendChild(img);
-      bindNativePhotoClick(link, link.getAttribute("href"));
-      row.appendChild(link);
-    });
+    items.forEach((item) => appendPhotoLink(row, item));
     parent.insertBefore(row, box);
   }
 
   hideNative(box);
+  holdPendingMedia(row);
   watchMedia(row, fitRow);
   fitRow(row);
 }
@@ -1311,12 +1528,32 @@ function findGroupBox(photos) {
   return aspect || node;
 }
 
+function appendPhotoLink(row, item) {
+  const link = document.createElement("a");
+  link.href = item.href || item.url;
+  link.rel = "noopener";
+  const img = document.createElement("img");
+  img.alt = "";
+  img.dataset.widexSrc = item.url;
+  if (item.preview) img.dataset.widexPreview = item.preview;
+  if (item.aspect > 0) img.dataset.widexAspect = String(item.aspect);
+  if (!current.limitHeight) img.src = item.url;
+  link.appendChild(img);
+  bindNativePhotoClick(link, item.href || link.getAttribute("href"));
+  row.appendChild(link);
+}
+
 function flattenPhotoList(photos) {
   const items = photos
-    .map((photo) => ({
-      url: photoUrl(photo),
-      href: photo.closest("a")?.getAttribute("href") || "",
-    }))
+    .map((photo) => {
+      const raw = rawPhotoUrl(photo);
+      return {
+        url: mediaUrl(raw),
+        preview: smallPreview(raw),
+        href: photo.closest("a")?.getAttribute("href") || "",
+        aspect: photoAspectRatio(photo),
+      };
+    })
     .filter((item) => item.url);
   if (items.length < 2) return;
 
@@ -1330,21 +1567,12 @@ function flattenPhotoList(photos) {
   if (!row) {
     row = document.createElement("div");
     row.className = "widex-row";
-    items.forEach((item) => {
-      const link = document.createElement("a");
-      link.href = item.href || item.url;
-      link.rel = "noopener";
-      const img = document.createElement("img");
-      img.src = item.url;
-      img.alt = "";
-      link.appendChild(img);
-      bindNativePhotoClick(link, item.href);
-      row.appendChild(link);
-    });
+    items.forEach((item) => appendPhotoLink(row, item));
     parent.insertBefore(row, box);
   }
 
   hideNative(box);
+  holdPendingMedia(row);
   watchMedia(row, fitRow);
   fitRow(row);
 }

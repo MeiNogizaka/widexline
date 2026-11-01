@@ -127,6 +127,19 @@ html.widex-limit-height .widex-single img {
   object-fit: contain !important;
 }
 
+/* Holds the post at its final height while small, then large, is still arriving. */
+html.widex-limit-height .widex-row img.widex-pending,
+html.widex-limit-height .widex-single img.widex-pending {
+  width: var(--widex-hold-w) !important;
+  height: var(--widex-hold-h) !important;
+  min-width: var(--widex-hold-w) !important;
+  min-height: var(--widex-hold-h) !important;
+  max-width: var(--widex-hold-w) !important;
+  max-height: var(--widex-hold-h) !important;
+  object-fit: contain !important;
+  background: #dfe5e8;
+}
+
 /* Off: previous collapse. A 0×0 box makes X request name=120x120. */
 html:not(.widex-keep-hidden-size) [data-widex-hidden="1"] {
   display: none !important;
